@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <style>
+        .error-message {
+            color: red;
+            font-size: 12px;
+        }
+        .success-message {
+            color: green;
+            font-size: 12px;
+        }
+        .btn {
+            margin-top: 10px;
+        }
+        input {
+            margin-bottom: 5px;
+        }
+        .register-home {
+            background: rgba(143, 110, 110, 0.78);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(143, 110, 110, 0.3);
+        }
+        body {
+            background: black;
+        }
+        .total-reg {
+            background: rgba(255, 255, 255, 1);
+            border-radius: 16px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            -webkit-backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <h1 style="color:white;font-family: 'Times New Roman', Times, serif;">TRIP WITH ME</h1>
+    <div class="total-reg" style="width: 1322px;margin-left: 96px;margin-top: 50px;height: 620px;">
+        <div class="reg-img">
+            <img src="static/images/aes5.jpg" alt="image" height="500px" width="500px" style="margin-top: 58px;margin-left: 61px;border-radius:10px;">
+        </div>
+
+        <div class="register-home" style="height: 500px;width: 484px;color:white;margin-left: 772px;margin-top: -496px;">
+            
+            <h2 style="font-family:georgia,garamond,serif;margin-top: 22px;margin-left: 20px;">Register</h2><br>
+            <center>
+            <form id="registerForm" method="POST">
+                <table align="center">
+                    <tr>
+                        <td><input type="text" id="name" name="name" class="input-group-text" placeholder="Enter Name" required>
+                        <p id="nameError" class="error-message" style="height: 20px; width: 227px;"></p></td>
+                    </tr>
+                    
+                    <tr>
+                        <td><input type="email" id="email" name="email" class="input-group-text" placeholder="Enter Email" required>
+                        <p id="emailError" class="error-message" style="height: 20px; width: 227px;"></p></td>
+                    </tr>
+            
+                    <tr>
+                        <td><input type="password" id="password" name="password" class="input-group-text" placeholder="Enter Password" required>
+                        <p id="passwordError" class="error-message" style="height: 30px; width: 350px;"></p></td>
+                    </tr>
+
+                    <tr>
+                        <td><input type="password" id="confirm_password" name="confirm_password" class="input-group-text" placeholder="Confirm Password" required>
+                        <p id="confirmPasswordError" class="error-message" style="height: 10px; width: 227px;"></p></td>
+                    </tr>
+            
+                    <tr>
+                        <td><button type="submit" id="submitButton" class="btn btn-outline-light" disabled>Register</button></td>
+                    </tr>
+                </table>
+                <p style="color:#E0F320;"><a class="nav-link" href="{{ url_for('login') }}">Already Have an account!!Login</a></p>
+            </form>
+            </center>
+        </div>
+    </div>
+</body>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    function validateName() {
+        const nameInput = $('#name');
+        const nameError = $('#nameError');
+        const nameRegex = /^[A-Za-z ]{2,}$/;
+
+        if (!nameRegex.test(nameInput.val().trim())) {
+            nameError.text('Minimum 2 characters, alphabets only, No special Characters');
+            nameError.addClass('error-message');
+            nameError.removeClass('success-message');
+            return false;
+        } else {
+            nameError.text('Name is valid');
+            nameError.addClass('success-message');
+            nameError.removeClass('error-message');
+            return true;
+        }
+    }
+
+    function validateEmail() {
+        const email = $('#email').val();
+        const emailError = $('#emailError');
+        const emailRegex = /^\w+([\.-]?\w+)@\w+([\.-]?\w+)(\.\w{2,3})+$/;
+
+        if (!emailRegex.test(email)) {
+            emailError.text("Enter a valid email address");
+            emailError.addClass('error-message');
+            emailError.removeClass('success-message');
+            return false;
+        } else {
+            emailError.text("Email is valid");
+            emailError.addClass('success-message');
+            emailError.removeClass('error-message');
+            return true;
+        }
+    }
+
+    function validatePassword() {
+        const passwordInput = $('#password');
+        const passwordError = $('#passwordError');
+        const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%&*\/\\]).{8,16}$/;
+
+        if (!passwordRegex.test(passwordInput.val())) {
+            passwordError.text('Must be 8-16 characters long, at least one uppercase letter, one lowercase letter, one number, one special character (!@#$%&*/\\)');
+            passwordError.addClass('error-message');
+            passwordError.removeClass('success-message');
+            return false;
+        } else {
+            passwordError.text('Password is valid');
+            passwordError.addClass('success-message');
+            passwordError.removeClass('error-message');
+            return true;
+        }
+    }
+
+    function validateConfirmPassword() {
+        const password = $('#password').val();
+        const confirmPassword = $('#confirm_password').val();
+        const confirmPasswordError = $('#confirmPasswordError');
+
+        if (password !== confirmPassword) {
+            confirmPasswordError.text('Passwords do not match');
+            confirmPasswordError.addClass('error-message');
+            confirmPasswordError.removeClass('success-message');
+            return false;
+        } else {
+            confirmPasswordError.text('Passwords match');
+            confirmPasswordError.addClass('success-message');
+            confirmPasswordError.removeClass('error-message');
+            return true;
+        }
+    }
+
+    function enableSubmitButton() {
+        const isValidName = validateName();
+        const isValidEmail = validateEmail();
+        const isValidPassword = validatePassword();
+        const isValidConfirmPassword = validateConfirmPassword();
+
+        const submitButton = $('#submitButton');
+        submitButton.prop('disabled', !(isValidName && isValidEmail && isValidPassword && isValidConfirmPassword));
+    }
+
+    $('#name').on('keyup', function() {
+        validateName();
+        enableSubmitButton();
+    });
+
+    $('#email').on('keyup', function() {
+        validateEmail();
+        enableSubmitButton();
+    });
+
+    $('#password').on('keyup', function() {
+        validatePassword();
+        validateConfirmPassword();
+        enableSubmitButton();
+    });
+
+    $('#confirm_password').on('keyup', function() {
+        validateConfirmPassword();
+        enableSubmitButton();
+    });
+
+    $('#registerForm').on('submit', function(event) {
+        const isValidName = validateName();
+        const isValidEmail = validateEmail();
+        const isValidPassword = validatePassword();
+        const isValidConfirmPassword = validateConfirmPassword();
+
+        if (!isValidName || !isValidEmail || !isValidPassword || !isValidConfirmPassword) {
+            event.preventDefault();
+        }
+    });
+
+    $('#submitButton').on('click', function() {
+        const flashMessages = localStorage.getItem('flashMessages');
+        if (flashMessages) {
+            alert("Email already available");
+            localStorage.removeItem('flashMessages');
+        }
+    });
+</script>
+</html>

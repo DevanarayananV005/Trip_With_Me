@@ -1,0 +1,51 @@
+{% extends "auth_base.html" %}
+
+{% block content %}
+<style>
+    .ver_ot{
+        background: rgba(72, 99, 138, 1);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border: 1px solid rgba(72, 99, 138, 0.3);
+    }
+    .ver_otp{
+        background: rgba(255, 180, 4, 1);
+        border-radius: 16px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+        border: 1px solid rgba(72, 99, 138, 0.3);
+    }
+</style>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+<div class="ver_ot" style="width: 500px;margin-left: 399px;height: 550px;margin-top: 127px;">
+    <div class="ver_otp" style="width: 345px;height: 350px;margin-left: 78px;margin-top: 100px;">
+        <center><br>
+    <h2>VERIFY OTP</h2>
+    <p style="color:red;">We have forwarded an otp to the entered email!!<br>Please Enter the otp to confirm the email</p><br>
+    <form method="POST">
+        <table style="height: 117px;">
+            <tr align="center">
+                <td colspan="2"><label for="otp">OTP</label></td>
+            </tr>
+            <tr align="center">
+                <td colspan="2"><input type="text" name="otp" class="form-control" required></td>
+            </tr>
+            {% if error_message %}
+            <tr align="center">
+                <td colspan="2"><p style="color: red;">{{ error_message }}</p></td>
+            </tr>
+            {% endif %}
+            <tr align="center">
+                <td colspan="2"><button type="submit" class="btn btn-outline-dark">Verify</button></td>
+            </tr>
+        </table>
+    </form>
+</center>
+</div>
+</div>
+
+{% endblock %}
