@@ -33,14 +33,14 @@ db = firestore.client()    # Access Firestore
 
 # Firebase configuration for Pyrebase
 config = {
-    "apiKey": "AIzaSyBR1xj4iWIRS1YuD_5Cwta7QN00-1UtLN4",
-    "authDomain": "tripwithme-db6792.firebaseapp.com",
-    "projectId": "tripwithme-db6792",
-    "storageBucket": "tripwithme-db6792.appspot.com",
-    "messagingSenderId": "567401440169",
-    "appId": "1:567401440169:web:96885bb3f0859cbff09ab8",
-    "measurementId": "G-WLDG1QFZH3",
-    "databaseURL": "https://tripwithme-db6792-default-rtdb.firebaseio.com/"
+    "apiKey": "firebase _api",
+    "authDomain": "firebase_authDomain",
+    "projectId": "firebase_projectId",
+    "storageBucket": "firebase_storageBucket",
+    "messagingSenderId": "firebase_senderId",
+    "appId": "firebase_appId",
+    "measurementId": "firebase_mesurementId",
+    "databaseURL": "firebase_databaseURL"
 }
 
 # Initialize Firebase with Pyrebase
