@@ -46,39 +46,41 @@
     </style>
     <title>Trip_with_me</title>
 </head>
-<body>
-    <nav class="navbar navbar-expand-lg bg-body-tertiary fixed-top" style="height: 68px;">
+<body style="background:black;color:white;font-family: 'Courier New', Courier, monospace;">
+    <nav class="navbar navbar-expand-lg fixed-top" style="background:black;height: 68px;">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#home">TRIP WITH ME</a>
+            <a class="navbar-brand" href="#home"><image src="static/images/aes11.png" style="width:50px;height:50px;"></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#home">Home</a>
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="#home">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#messages">Messages</a>
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="#messages">Messages</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#about">About</a>
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="#about">About</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" aria-current="page" href="#contact">Contact</a>
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="#contact">Contact</a>
                     </li>
                     {% if session.get('user') %}
-                    <li class="nav-item" style=" margin-left: 1000px;">
-                        <a href="{{ url_for('logout') }}">
-                            <img src="{{ url_for('static', filename='images/' + user_image) }}" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;">
-                        </a>
+                    <li class="nav-item" style=" margin-left: 1050px;">
+                        <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;">
+                        <ul  style=" margin-left: 1350px;" class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">LogOut</a></li>
+                            <li><a class="dropdown-item"  href="{{ url_for('updateuser') }}">Update Profile</a></li>
+                          </ul>
                     </li>
                     {% else %}
                     <li class="nav-item" style=" margin-left: 950px;">
-                        <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+                        <a class="nav-link" style="color:white;" href="{{ url_for('login') }}">Login</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+                        <a class="nav-link" style="color:white;" href="{{ url_for('register') }}">Register</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -86,43 +88,23 @@
         </div>
     </nav>
 
-    <div id="home" class="carousel slide" data-bs-ride="carousel">
-        <div class="carousel-inner" style="height: 870px;">
-            <div class="carousel-item active">
-                <img src="static/images/aes1.jpg" class="d-block w-100" alt="...">
-            </div>
-            <div class="carousel-item">
-                <img src="static/images/aes2.jpg" class="d-block w-100" alt="...">
-            </div>
-            <div class="carousel-item">
-                <img src="static/images/aes3.jpg" class="d-block w-100" alt="...">
-            </div>
-            <div class="carousel-item">
-                <img src="static/images/aes4jpg.jpg" class="d-block w-100" alt="...">
-            </div>
-        </div>
-        <button class="carousel-control-prev" type="button" data-bs-target="#home" data-bs-slide="prev">
-            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Previous</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#home" data-bs-slide="next">
-            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-            <span class="visually-hidden">Next</span>
-        </button>
+    <div id="messages" class="container mt-3 section">
+        <h1  style="margin-top: 119px;">Welcome to TRIP WITH ME</h1>
+        <p>With you Beyond horizon!!</p>
+        <img src="static/images/aes11.png" style="margin-left: 867px;height:300px;width300px;margin-top: -181px;">
     </div>
 
-    <div id="messages" class="container mt-3 section">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                <div class="flash-messages">
-                    {% for category, message in messages %}
-                        <div class="alert alert-{{ category }}">{{ message }}</div>
-                    {% endfor %}
-                </div>
-            {% endif %}
-        {% endwith %}
-        {% block content %}{% endblock %}
+    <div class="container mt-3 section" id="travel-partner">
+        <h2>Find Travel Mate</h2>
+        <div style="width:616px">
+        <p style="text-align:justify;"> Feeling boared at work, Escape to the happiness of the world. Always needed a Vacation don't waste any more time do it now it self. Find a partner for your trip for your dream destination. </p>
+        </div>
+        <div style="margin-left: 899px;margin-top: -100px;">
+            <button type="button" class="btn btn-outline-light" style="width: 352px;" id="scheduletrip" onclick="handleScheduleTrip()">Schedule Trip</button><br><br>
+            <button type="button" class="btn btn-outline-light" style="width: 353px;" id="findtrip" onclick="handleFindTrip()">Find Trip</button>
+        </div>
     </div>
+
 
     <div id="about" class="container mt-3 section">
         <h2>About</h2>
@@ -144,12 +126,11 @@
             Stay connected and join our community for the latest updates and travel inspiration.
         </p>
     </div>  
-    <div class="card" style="background: #727272;color: white;">
-        <div class="card-body">
+        <div style="background:#009be3;height: 39px;">
             &copy; 2024 Trip With Me. All rights reserved.
-            <a href="#" style="margin-left: 952px;">Terms of Service</a> | <a href="#">Privacy Policy</a>
+            <a href="#" style="margin-left: 850px;">Terms of Service</a> | <a href="#">Privacy Policy</a>
+            </div>
         </div>
-      </div>
 
     <script>
         // Ensure smooth scrolling
@@ -162,6 +143,24 @@
                 });
             });
         });
+        // Check if the user is logged in
+        var isLoggedIn = {{ 'true' if user_logged_in else 'false' }};
+        
+        function handleScheduleTrip() {
+            if (isLoggedIn) {
+                window.location.href = "{{ url_for('scheduletrip') }}";
+            } else {
+                window.location.href = "{{ url_for('login') }}";
+            }
+        }
+
+        function handleFindTrip() {
+            if (isLoggedIn) {
+                window.location.href = "{{ url_for('findtrip') }}";
+            } else {
+                window.location.href = "{{ url_for('login') }}";
+            }
+        }
     </script>
 </body>
 </html>

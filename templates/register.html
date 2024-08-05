@@ -22,23 +22,30 @@
             margin-bottom: 5px;
         }
         .register-home {
-            background: rgba(143, 110, 110, 0.78);
+            background: rgba(99, 99, 99, 0.51);
             border-radius: 16px;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            border: 1px solid rgba(143, 110, 110, 0.3);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(99, 99, 99, 0.3);
         }
         body {
             background: black;
         }
         .total-reg {
-            background: rgba(255, 255, 255, 1);
+            background: rgba(255, 255, 255, 0.22);
             border-radius: 16px;
             box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
+            backdrop-filter: blur(3.7px);
+            -webkit-backdrop-filter: blur(3.7px);
             border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        body {
+            background-image: url('static/images/aes5.jpg'); /* Path to your background image */
+            background-repeat: no-repeat;  /* Prevent the background from repeating */
+            background-size: cover;        /* Scale the background image to cover the entire element */
+            background-position: center center; /* Center the background image */
+            background-attachment: fixed;  /* Fix the background image to the viewport */
         }
     </style>
 </head>
@@ -46,7 +53,7 @@
     <h1 style="color:white;font-family: 'Times New Roman', Times, serif;">TRIP WITH ME</h1>
     <div class="total-reg" style="width: 1322px;margin-left: 96px;margin-top: 50px;height: 620px;">
         <div class="reg-img">
-            <img src="static/images/aes5.jpg" alt="image" height="500px" width="500px" style="margin-top: 58px;margin-left: 61px;border-radius:10px;">
+            <img src="static/images/aes10.png" alt="image" height="500px" width="500px" style="margin-top: 58px;margin-left: 61px;border-radius:10px;">
         </div>
 
         <div class="register-home" style="height: 500px;width: 484px;color:white;margin-left: 772px;margin-top: -496px;">
@@ -202,12 +209,5 @@
         }
     });
 
-    $('#submitButton').on('click', function() {
-        const flashMessages = localStorage.getItem('flashMessages');
-        if (flashMessages) {
-            alert("Email already available");
-            localStorage.removeItem('flashMessages');
-        }
-    });
 </script>
 </html>

@@ -2,7 +2,7 @@ import base64
 import datetime
 import os
 import re
-from flask import Flask, flash, jsonify, redirect, render_template, request, url_for, session
+from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, url_for, session
 import pyrebase
 import secrets
 import smtplib
@@ -33,14 +33,14 @@ db = firestore.client()    # Access Firestore
 
 # Firebase configuration for Pyrebase
 config = {
-    "apiKey": "firebase _api",
-    "authDomain": "firebase_authDomain",
-    "projectId": "firebase_projectId",
-    "storageBucket": "firebase_storageBucket",
-    "messagingSenderId": "firebase_senderId",
-    "appId": "firebase_appId",
-    "measurementId": "firebase_mesurementId",
-    "databaseURL": "firebase_databaseURL"
+    "apiKey": "#",
+    "authDomain": "#",
+    "projectId": "#",
+    "storageBucket": "#",
+    "messagingSenderId": "#",
+    "appId": "#",
+    "measurementId": "W",
+    "databaseURL": "#"
 }
 
 # Initialize Firebase with Pyrebase
@@ -51,12 +51,12 @@ db = firebase.database()
 # SMTP email configuration
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
-SMTP_USERNAME = 'your_mail'
-SMTP_PASSWORD = 'your_password'
+SMTP_USERNAME = '#'
+SMTP_PASSWORD = '#'
 
 def send_otp_email(to_email, otp):
-    subject = 'Your OTP Code'
-    body = f'Your OTP code is: {otp}'
+    subject = 'OTP code for Registration'
+    body = f'Thank you for exploring our website Trip With Me. Try to find your Travel mate or Explore our wide range of roue packages. Your One time password for registration is: {otp}'
     
     msg = MIMEMultipart()
     msg['From'] = SMTP_USERNAME
@@ -80,11 +80,22 @@ def send_otp_email(to_email, otp):
 def index():
     if 'user' in session:
         user_id = session['user_id']
-        # Fetch user image filename from pers_det
         pers_det = db.child("per_det").child(user_id).get().val()
         user_image = pers_det.get('image', 'default_image.jpg')  # Default image if not found
-        return render_template('index.html', user_image=user_image)
-    return render_template('landing.html')
+        response = make_response(render_template('index.html', user_image=user_image, user_logged_in=True))
+    else:
+        response = make_response(render_template('landing.html', user_logged_in=False))
+    
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
+
+@app.route('/base')
+def base():
+    user_logged_in = 'user' in session
+    return render_template('base.html', user_logged_in=user_logged_in)
+
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -243,51 +254,95 @@ def verify_otp(user_id):
     
     return render_template('verify_otp.html', error_message=error_message)
 
-# Password reset request
+#update user
+@app.route('/updateuser', methods=['GET', 'POST'])
+def updateuser():
+    if 'user' in session:
+        user_id = session['user_id']
+        if request.method == 'POST':
+            # Handle form data to update user info
+            housename = request.form.get('housename')
+            pincode = request.form.get('pincode')
+            state = request.form.get('state')
+            district = request.form.get('district')
+            phone = request.form.get('phone')
+            dob = request.form.get('dob')
+
+            try:
+                # Update the pers_det node
+                db.child("per_det").child(user_id).update({
+                    "adname": housename,
+                    "pin": pincode,
+                    "state": state,
+                    "district": district,
+                    "phone": phone,
+                    "dob": dob
+                })
+                flash('Details updated successfully!', 'success')
+                return redirect(url_for('updateuser'))  # Stay on the same page to show the alert
+            except Exception as e:
+                flash(f'Error updating details: {str(e)}', 'danger')
+                return redirect(url_for('updateuser'))
+        
+        # Fetch user details
+        try:
+            user_data = db.child("users").child(user_id).get().val()
+            pers_det = db.child("per_det").child(user_id).get().val()
+
+            email = user_data.get('email', '')
+            name = user_data.get('name', '')
+            pincode = pers_det.get('pin', '')
+            state = pers_det.get('state', '')
+            district = pers_det.get('district', '')
+            housename = pers_det.get('adname', '')
+            phone = pers_det.get('phone', '')
+            dob = pers_det.get('dob', '')
+            image_name = pers_det.get('image', 'default_image.jpg')
+
+            return render_template('updateuser.html',
+                email=email,
+                name=name,
+                pincode=pincode,
+                state=state,
+                district=district,
+                housename=housename,
+                phone=phone,
+                dob=dob,
+                image_name=image_name
+            )
+        except Exception as e:
+            flash(f'Error fetching user details: {str(e)}', 'danger')
+            return redirect(url_for('index'))
+    else:
+        flash('User not logged in.', 'danger')
+        return redirect(url_for('login'))
+
+
+
+#password_reset
 @app.route('/password_reset_request', methods=['GET', 'POST'])
 def password_reset_request():
     if request.method == 'POST':
         email = request.form['email']
-        otp = secrets.token_hex(3)
-        user = auth.get_user_by_email(email)
-        user_id = user.uid
 
-        db.child("password_resets").child(user_id).set({"otp": otp, "email": email})
-
-        send_otp_email(email, otp)
-        flash('OTP sent to your email address!', 'success')
-        return redirect(url_for('verify_reset_otp', user_id=user_id))
+        try:
+            auth.send_password_reset_email(email)
+            flash('Password reset email sent! Please check your email.', 'success')
+            return redirect(url_for('login'))
+        except Exception as e:
+            flash(f'Error: {str(e)}', 'danger')
 
     return render_template('password_reset_request.html')
-
-# OTP verification for password reset
-@app.route('/verify_reset_otp/<user_id>', methods=['GET', 'POST'])
-def verify_reset_otp(user_id):
-    error_message = None
+@app.route('/reset_password_confirm', methods=['GET', 'POST'])
+def reset_password_confirm():
     if request.method == 'POST':
-        entered_otp = request.form['otp']
-        password_reset_data = db.child("password_resets").child(user_id).get().val()
-        actual_otp = password_reset_data.get('otp')
-
-        if entered_otp == actual_otp:
-            flash('OTP verified. Please enter your new password.', 'success')
-            return redirect(url_for('reset_password', user_id=user_id))
-        else:
-            error_message = 'Invalid OTP. Please try again.'
-
-    return render_template('verify_reset_otp.html', error_message=error_message)
-
-# Password reset
-@app.route('/reset_password/<user_id>', methods=['GET', 'POST'])
-def reset_password(user_id):
-    if request.method == 'POST':
+        oob_code = request.form['oob_code']
         new_password = request.form['new_password']
         confirm_password = request.form['confirm_password']
 
         if new_password == confirm_password:
             try:
-                auth.update_user(user_id, password=new_password)
-                db.child("password_resets").child(user_id).remove()
+                auth.confirm_password_reset(oob_code, new_password)
                 flash('Password reset successfully!', 'success')
                 return redirect(url_for('login'))
             except Exception as e:
@@ -295,8 +350,59 @@ def reset_password(user_id):
         else:
             flash('Passwords do not match. Please try again.', 'danger')
 
-    return render_template('reset_password.html')
+    oob_code = request.args.get('oobCode')
+    return render_template('reset_password_confirm.html', oob_code=oob_code)
 
+#find trip and schedule trip
+@app.route('/scheduletrip', methods=['GET', 'POST'])
+def scheduletrip():
+    if 'user' in session:
+        if request.method == 'POST':
+            user_id = session['user_id']
+            destination = request.form.get('destination')
+            tripdate = request.form.get('tripdate')
+            budget = request.form.get('budget')
+
+            if not destination or not tripdate or not budget:
+                flash('Please fill in all fields.', 'warning')
+                return redirect(url_for('scheduletrip'))
+
+            # Prepare data to be saved
+            trip_data = {
+                "user_id": user_id,
+                "destination": destination,
+                "tripdate": tripdate,
+                "budget": budget
+            }
+
+            # Save data to Firebase under 'scheduletrip' node
+            try:
+                db.child("scheduletrip").push(trip_data)
+                flash('Trip Scheduled successfully. If any request arrives will be notified.', 'success')
+                return redirect(url_for('scheduletrip'))
+            except Exception as e:
+                flash(f'Error saving trip data: {str(e)}', 'danger')
+                return redirect(url_for('scheduletrip'))
+        else:
+            # Render the schedule trip form on GET request
+            return render_template('scheduletrip.html')
+    else:
+        flash('User not logged in.', 'danger')
+        return redirect(url_for('login'))
+
+
+
+
+@app.route('/findtrip')
+def findtrip():
+    if 'user' in session:
+        return render_template('findtrip.html')
+    else:
+        return redirect(url_for('login'))
+
+
+
+#login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -318,17 +424,21 @@ def login():
             elif status == 2:
                 return redirect(url_for('index'))
         except Exception as e:
-            flash(f'Error: {str(e)}', 'danger')
+            error_message = str(e)
+            if "INVALID_PASSWORD" in error_message:
+                flash('Wrong password or email.', 'danger')
+            else:
+                flash('Error: ' + error_message, 'danger')
             return redirect(url_for('login'))
 
     return render_template('login.html')
 
+
 @app.route('/logout')
 def logout():
-    session.pop('user', None)
-    session.pop('user_id', None)
+    session.clear()  # Clear the session
     flash('You have been logged out!', 'info')
-    return redirect(url_for('login'))
+    return redirect(url_for('index')) 
 
 if __name__ == '__main__':
     app.run(debug=True)

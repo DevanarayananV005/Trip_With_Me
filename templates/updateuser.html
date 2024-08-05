@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+
+
+<title>Update Profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet">
+<style type="text/css">
+body {
+margin-top:20px;
+background-image: url('static/images/aes14.jpg'); /* Path to your background image */
+background-repeat: no-repeat;  /* Prevent the background from repeating */
+background-size: cover;        /* Scale the background image to cover the entire element */
+background-position: center center; /* Center the background image */
+background-attachment: fixed;  /* Fix the background image to the viewport */
+}
+.error {
+color: red;
+font-size: 0.875em;
+}
+.img-account-profile {
+    height: 10rem;
+}
+.rounded-circle {
+    border-radius: 50% !important;
+}
+.card {
+    box-shadow: 0 0.15rem 1.75rem 0 rgb(33 40 50 / 15%);
+}
+.card .card-header {
+    font-weight: 500;
+}
+.card-header:first-child {
+    border-radius: 0.35rem 0.35rem 0 0;
+}
+.card-header {
+    padding: 1rem 1.35rem;
+    margin-bottom: 0;
+    background-color: rgba(33, 40, 50, 0.03);
+    border-bottom: 1px solid rgba(33, 40, 50, 0.125);
+}
+.form-control, .dataTable-input {
+    display: block;
+    width: 100%;
+    padding: 0.875rem 1.125rem;
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1;
+    color: #69707a;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #c5ccd6;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 0.35rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.nav-borders .nav-link.active {
+    color: #0061f2;
+    border-bottom-color: #0061f2;
+}
+.nav-borders .nav-link {
+    color: #69707a;
+    border-bottom-width: 0.125rem;
+    border-bottom-style: solid;
+    border-bottom-color: transparent;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 0;
+    padding-right: 0;
+    margin-left: 1rem;
+    margin-right: 1rem;
+}
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+<div class="container-xl px-4 mt-4">
+
+<nav class="nav nav-borders">
+<a class="nav-link active ms-0" href="#" target="__blank">Profile</a>
+</nav>
+<hr class="mt-0 mb-4">
+<div class="row">
+<div class="col-xl-4">
+
+<div class="card mb-4 mb-xl-0">
+<div class="card-header">Profile Picture</div>
+<div class="card-body text-center">
+
+<img class="img-account-profile rounded-circle mb-2" src="{{ url_for('static', filename='images/' + image_name) }}" style="border-radius: 50%;height:160px;width:160px;" name="pp" id="pp" alt>
+
+
+</div>
+</div>
+</div>
+<div class="col-xl-8">
+
+<div class="card mb-4">
+<div class="card-header">Account Details</div>
+<div class="card-body">
+<form method="POST" action="{{ url_for('updateuser') }}">
+
+<div class="mb-3">
+<label class="small mb-1" for="inputEmail">Email</label>
+<input class="form-control" name="email" id="email" type="text" placeholder="Enter your Email" value="{{ email }}" disabled>
+</div>
+
+<div class="row gx-3 mb-3">
+
+<div class="col-md-6">
+<label class="small mb-1" for="inputName">Name</label>
+<input class="form-control" name="name" id="name" type="text" placeholder="Enter your name" value="{{ name }}" disabled>
+</div>
+<div class="col-md-6">
+<label class="small mb-1" for="inputPincode">Pincode</label>
+<input class="form-control" name="pincode" id="pincode" type="text" placeholder="Enter your Pincode" value="{{ pincode }}">
+<span id="pincodeError" class="error"></span>
+</div>
+    
+
+
+<div class="row gx-3 mb-3">
+
+<div class="col-md-6">
+<label class="small mb-1" for="inputOrgName">State</label>
+<select id="state" name="state" class="form-control">
+<option value="{{ state }}">{{ state }}</option>
+<option value=""></option>
+</select>
+</div>
+
+<div class="col-md-6">
+<label class="small mb-1" for="inputLocation">District</label>
+<select id="district" name="district" class="form-control">
+ <option value="{{ district }}">{{ district }}</option>
+ <option value=""></option>
+</select>
+</div>
+</div>
+
+<div class="mb-3">
+<label class="small mb-1" for="inputHouseName">House Name</label>
+<input class="form-control" name="housename" id="housename" type="text" placeholder="Enter your House Name" value="{{ housename }}">
+<span id="adnameError" class="error"></span>
+</div>
+
+<div class="row gx-3 mb-3">
+
+<div class="col-md-6">
+<label class="small mb-1" for="inputPhone">Phone number</label>
+<input class="form-control" name="phone" id="phone" type="text" placeholder="Enter your phone number" value="{{ phone }}">
+<span id="phoneError" class="error"></span>
+</div>
+
+<div class="col-md-6">
+    <label class="small mb-1" for="inputDob">D.O.B</label>
+    <input class="form-control" name="dob" id="dob" type="date" placeholder="Enter your D.O.B" value="{{ dob }}">
+    <span id="dobError" class="error"></span>
+</div>
+
+<div class="row gx-3 mb-3"></div>
+
+<button class="btn btn-primary" name="submit" id="submit" type="submit">Save changes</button><br>
+<p align="center" style="color:#E0F320;"><a class="nav-link" id="foregetpassword" href="{{ url_for('password_reset_request') }}" style="color:#blue;margin-top:20px;">Update Password</a></p>
+
+</form>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const indiaStatesDistricts = {
+        "Andhra Pradesh": ["Anantapur", "Chittoor", "East Godavari", "Guntur", "Krishna", "Kurnool", "Prakasam", "Srikakulam", "Visakhapatnam", "Vizianagaram", "West Godavari", "YSR Kadapa"],
+        "Arunachal Pradesh": ["Tawang", "West Kameng", "East Kameng", "Papum Pare", "Kurung Kumey", "Kra Daadi", "Lower Subansiri", "Upper Subansiri", "West Siang", "East Siang", "Siang", "Upper Siang", "Lower Siang", "Lower Dibang Valley", "Dibang Valley", "Anjaw", "Lohit", "Namsai", "Changlang", "Tirap", "Longding"],
+        "Assam": ["Baksa", "Barpeta", "Biswanath", "Bongaigaon", "Cachar", "Charaideo", "Chirang", "Darrang", "Dhemaji", "Dhubri", "Dibrugarh", "Dima Hasao", "Goalpara", "Golaghat", "Hailakandi", "Hojai", "Jorhat", "Kamrup", "Kamrup Metropolitan", "Karbi Anglong", "Karimganj", "Kokrajhar", "Lakhimpur", "Majuli", "Morigaon", "Nagaon", "Nalbari", "Sivasagar", "Sonitpur", "South Salmara-Mankachar", "Tinsukia", "Udalguri", "West Karbi Anglong"],
+        "Bihar": ["Araria", "Arwal", "Aurangabad", "Banka", "Begusarai", "Bhagalpur", "Bhojpur", "Buxar", "Darbhanga", "East Champaran (Motihari)", "Gaya", "Gopalganj", "Jamui", "Jehanabad", "Kaimur (Bhabua)", "Katihar", "Khagaria", "Kishanganj", "Lakhisarai", "Madhepura", "Madhubani", "Munger (Monghyr)", "Muzaffarpur", "Nalanda", "Nawada", "Patna", "Purnia (Purnea)", "Rohtas", "Saharsa", "Samastipur", "Saran", "Sheikhpura", "Sheohar", "Sitamarhi", "Siwan", "Supaul", "Vaishali", "West Champaran"],
+        "Chhattisgarh": ["Balod", "Baloda Bazar", "Balrampur", "Bastar", "Bemetara", "Bijapur", "Bilaspur", "Dantewada (South Bastar)", "Dhamtari", "Durg", "Gariyaband", "Janjgir-Champa", "Jashpur", "Kabirdham (Kawardha)", "Kanker (North Bastar)", "Kondagaon", "Korba", "Koriya", "Mahasamund", "Mungeli", "Narayanpur", "Raigarh", "Raipur", "Rajnandgaon", "Sukma", "Surajpur", "Surguja"],
+        "Goa": ["North Goa", "South Goa"],
+        "Gujarat": ["Ahmedabad", "Amreli", "Anand", "Aravalli", "Banaskantha (Palanpur)", "Bharuch", "Bhavnagar", "Botad", "Chhota Udepur", "Dahod", "Dangs (Ahwa)", "Devbhoomi Dwarka", "Gandhinagar", "Gir Somnath", "Jamnagar", "Junagadh", "Kachchh", "Kheda (Nadiad)", "Mahisagar", "Mehsana", "Morbi", "Narmada (Rajpipla)", "Navsari", "Panchmahal (Godhra)", "Patan", "Porbandar", "Rajkot", "Sabarkantha (Himmatnagar)", "Surat", "Surendranagar", "Tapi (Vyara)", "Vadodara", "Valsad"],
+        "Haryana": ["Ambala", "Bhiwani", "Charkhi Dadri", "Faridabad", "Fatehabad", "Gurgaon", "Hisar", "Jhajjar", "Jind", "Kaithal", "Karnal", "Kurukshetra", "Mahendragarh", "Mewat", "Palwal", "Panchkula", "Panipat", "Rewari", "Rohtak", "Sirsa", "Sonipat", "Yamunanagar"],
+        "Himachal Pradesh": ["Bilaspur", "Chamba", "Hamirpur", "Kangra", "Kinnaur", "Kullu", "Lahaul &amp; Spiti", "Mandi", "Shimla", "Sirmaur (Sirmour)", "Solan", "Una"],
+        "Jharkhand": ["Bokaro", "Chatra", "Deoghar", "Dhanbad", "Dumka", "East Singhbhum", "Garhwa", "Giridih", "Godda", "Gumla", "Hazaribagh", "Jamtara", "Khunti", "Koderma", "Latehar", "Lohardaga", "Pakur", "Palamu", "Ramgarh", "Ranchi", "Sahebganj", "Seraikela-Kharsawan", "Simdega", "West Singhbhum"],
+        "Karnataka": ["Bagalkot", "Ballari (Bellary)", "Belagavi (Belgaum)", "Bengaluru (Bangalore) Rural", "Bengaluru (Bangalore) Urban", "Bidar", "Chamarajanagar", "Chikballapur", "Chikkamagaluru (Chikmagalur)", "Chitradurga", "Dakshina Kannada", "Davanagere", "Dharwad", "Gadag", "Hassan", "Haveri", "Kalaburagi (Gulbarga)", "Kodagu", "Kolar", "Koppal", "Mandya", "Mysuru (Mysore)", "Raichur", "Ramanagara", "Shivamogga (Shimoga)", "Tumakuru (Tumkur)", "Udupi", "Uttara Kannada (Karwar)", "Vijayapura (Bijapur)", "Yadgir"],
+        "Kerala": ["Alappuzha", "Ernakulam", "Idukki", "Kannur", "Kasaragod", "Kollam", "Kottayam", "Kozhikode", "Malappuram", "Palakkad", "Pathanamthitta", "Thiruvananthapuram", "Thrissur", "Wayanad"],
+        "Madhya Pradesh": ["Agar Malwa", "Alirajpur", "Anuppur", "Ashoknagar", "Balaghat", "Barwani", "Betul", "Bhind", "Bhopal", "Burhanpur", "Chhatarpur", "Chhindwara", "Damoh", "Datia", "Dewas", "Dhar", "Dindori", "Guna", "Gwalior", "Harda", "Hoshangabad", "Indore", "Jabalpur", "Jhabua", "Katni", "Khandwa", "Khargone", "Mandla", "Mandsaur", "Morena", "Narsinghpur", "Neemuch", "Niwari", "Panna", "Raisen", "Rajgarh", "Ratlam", "Rewa", "Sagar", "Satna", "Sehore", "Seoni", "Shahdol", "Shajapur", "Sheopur", "Shivpuri", "Sidhi", "Singrauli", "Tikamgarh", "Ujjain", "Umaria", "Vidisha"],
+        "Maharashtra": ["Ahmednagar", "Akola", "Amravati", "Aurangabad", "Beed", "Bhandara", "Buldhana", "Chandrapur", "Dhule", "Gadchiroli", "Gondia", "Hingoli", "Jalgaon", "Jalna", "Kolhapur", "Latur", "Mumbai City", "Mumbai Suburban", "Nagpur", "Nanded", "Nandurbar", "Nashik", "Osmanabad", "Palghar", "Parbhani", "Pune", "Raigad", "Ratnagiri", "Sangli", "Satara", "Sindhudurg", "Solapur", "Thane", "Wardha", "Washim", "Yavatmal"],
+        "Manipur": ["Bishnupur", "Chandel", "Churachandpur", "Imphal East", "Imphal West", "Jiribam", "Kakching", "Kamjong", "Kangpokpi", "Noney", "Pherzawl", "Senapati", "Tamenglong", "Tengnoupal", "Thoubal", "Ukhrul"],
+        "Meghalaya": ["East Garo Hills", "East Jaintia Hills", "East Khasi Hills", "North Garo Hills", "Ri Bhoi", "South Garo Hills", "South West Garo Hills ", "South West Khasi Hills", "West Garo Hills", "West Jaintia Hills", "West Khasi Hills"],
+        "Mizoram": ["Aizawl", "Champhai", "Kolasib", "Lawngtlai", "Lunglei", "Mamit", "Saiha", "Serchhip"],
+        "Nagaland": ["Dimapur", "Kiphire", "Kohima", "Longleng", "Mokokchung", "Mon", "Noklak", "Peren", "Phek", "Tuensang", "Wokha", "Zunheboto"],
+        "Odisha": ["Angul", "Balangir", "Balasore", "Bargarh", "Bhadrak", "Boudh", "Cuttack", "Deogarh", "Dhenkanal", "Gajapati", "Ganjam", "Jagatsinghapur", "Jajpur", "Jharsuguda", "Kalahandi", "Kandhamal", "Kendrapara", "Kendujhar (Keonjhar)", "Khordha", "Koraput", "Malkangiri", "Mayurbhanj", "Nabarangpur", "Nayagarh", "Nuapada", "Puri", "Rayagada", "Sambalpur", "Sonepur", "Sundargarh"],
+        "Punjab": ["Amritsar", "Barnala", "Bathinda", "Faridkot", "Fatehgarh Sahib", "Fazilka", "Ferozepur", "Gurdaspur", "Hoshiarpur", "Jalandhar", "Kapurthala", "Ludhiana", "Mansa", "Moga", "Mohali", "Muktsar", "Pathankot", "Patiala", "Rupnagar", "Sangrur", "Shaheed Bhagat Singh Nagar", "Tarn Taran"],
+        "Rajasthan": ["Ajmer", "Alwar", "Banswara", "Baran", "Barmer", "Bharatpur", "Bhilwara", "Bikaner", "Bundi", "Chittorgarh", "Churu", "Dausa", "Dholpur", "Dungarpur", "Hanumangarh", "Jaipur", "Jaisalmer", "Jalore", "Jhalawar", "Jhunjhunu", "Jodhpur", "Karauli", "Kota", "Nagaur", "Pali", "Pratapgarh", "Rajsamand", "Sawai Madhopur", "Sikar", "Sirohi", "Sri Ganganagar", "Tonk", "Udaipur"],
+        "Sikkim": ["East Sikkim", "North Sikkim", "South Sikkim", "West Sikkim"],
+        "Tamil Nadu": ["Ariyalur", "Chengalpet", "Chennai", "Coimbatore", "Cuddalore", "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kancheepuram", "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai", "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi", "Thanjavur", "Theni", "Thoothukudi (Tuticorin)", "Tiruchirappalli", "Tirunelveli", "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur", "Vellore", "Viluppuram", "Virudhunagar"],
+        "Telangana": ["Adilabad", "Bhadradri Kothagudem", "Hyderabad", "Jagtial", "Jangaon", "Jayashankar Bhoopalpally", "Jogulamba Gadwal", "Kamareddy", "Karimnagar", "Khammam", "Kumuram Bheem Asifabad", "Mahabubabad", "Mahabubnagar", "Mancherial", "Medak", "Medchal", "Mulugu", "Nagarkurnool", "Nalgonda", "Narayanpet", "Nirmal", "Nizamabad", "Peddapalli", "Rajanna Sircilla", "Ranga Reddy", "Sangareddy", "Siddipet", "Suryapet", "Vikarabad", "Wanaparthy", "Warangal (Rural)", "Warangal (Urban)", "Yadadri Bhuvanagiri"],
+        "Tripura": ["Dhalai", "Gomati", "Khowai", "North Tripura", "Sepahijala", "South Tripura", "Unakoti", "West Tripura"],
+        "Uttarakhand": ["Almora", "Bageshwar", "Chamoli", "Champawat", "Dehradun", "Haridwar", "Nainital", "Pauri Garhwal", "Pithoragarh", "Rudraprayag", "Tehri Garhwal", "Udham Singh Nagar", "Uttarkashi"],
+        "Uttar Pradesh": ["Agra", "Aligarh", "Ambedkar Nagar", "Amethi (Chatrapati Sahuji Mahraj Nagar)", "Amroha (J.P. Nagar)", "Auraiya", "Ayodhya (Faizabad)", "Azamgarh", "Badaun", "Baghpat", "Bahraich", "Ballia", "Balrampur", "Banda", "Barabanki", "Bareilly", "Basti", "Bhadohi", "Bijnor", "Budaun", "Bulandshahr", "Chandauli", "Chitrakoot", "Deoria", "Etah", "Etawah", "Farrukhabad", "Fatehpur", "Firozabad", "Gautam Buddha Nagar", "Ghaziabad", "Ghazipur", "Gonda", "Gorakhpur", "Hamirpur", "Hapur (Panchsheel Nagar)", "Hardoi", "Hathras", "Jalaun", "Jaunpur", "Jhansi", "Kannauj", "Kanpur Dehat", "Kanpur Nagar", "Kasganj (Kanshiram Nagar)", "Kaushambi", "Kushinagar (Padrauna)", "Lakhimpur - Kheri", "Lalitpur", "Lucknow", "Maharajganj", "Mahoba", "Mainpuri", "Mathura", "Mau", "Meerut", "Mirzapur", "Moradabad", "Muzaffarnagar", "Pilibhit", "Pratapgarh", "Prayagraj", "Raebareli", "Rampur", "Saharanpur", "Sambhal (Bhim Nagar)", "Sant Kabir Nagar", "Shahjahanpur", "Shamali (Prabuddh Nagar)", "Shravasti", "Siddharth Nagar", "Sitapur", "Sonbhadra", "Sultanpur", "Unnao", "Varanasi"],
+        "West Bengal": ["Alipurduar", "Bankura", "Birbhum", "Cooch Behar", "Dakshin Dinajpur (South Dinajpur)", "Darjeeling", "Hooghly", "Howrah", "Jalpaiguri", "Jhargram", "Kalimpong", "Kolkata", "Malda", "Murshidabad", "Nadia", "North 24 Parganas", "Paschim Medinipur (West Medinipur)", "Paschim (West) Burdwan (Bardhaman)", "Purba Burdwan (Bardhaman)", "Purba Medinipur (East Medinipur)", "Purulia", "South 24 Parganas", "Uttar Dinajpur (North Dinajpur)"]
+    };
+
+    const stateSelect = document.getElementById('state');
+    const districtSelect = document.getElementById('district');
+
+    // Populate states
+    Object.keys(indiaStatesDistricts).forEach(state => {
+        const option = document.createElement('option');
+        option.value = state;
+        option.text = state;
+        stateSelect.add(option);
+    });
+
+    // Update districts when a state is selected
+    stateSelect.addEventListener('change', function() {
+        districtSelect.innerHTML = '<option value="">Select a district</option>';
+        const selectedState = this.value;
+        if (selectedState) {
+            const districts = indiaStatesDistricts[selectedState];
+            districts.forEach(district => {
+                const option = document.createElement('option');
+                option.value = district;
+                option.text = district;
+                districtSelect.add(option);
+            });
+        }
+    });
+</script>
+<script>
+    $(document).ready(function() {
+        function validateForm() {
+            let isValid = true;
+
+            // Validate House Name
+            const adname = $('#housename').val().trim();
+            const adnameRegex = /^[a-zA-Z\s\d]{3,}$/;
+            if (!adnameRegex.test(adname)) {
+                $('#adnameError').text('House Name must be at least 3 characters long and can include letters, spaces, and numbers.');
+                isValid = false;
+            } else {
+                $('#adnameError').text('');
+            }
+
+            // Validate Pincode
+            const pincode = $('#pincode').val().trim();
+            const pincodeRegex = /^\d{6}$/;
+            if (!pincodeRegex.test(pincode)) {
+                $('#pincodeError').text('Pincode must be exactly 6 digits.');
+                isValid = false;
+            } else {
+                $('#pincodeError').text('');
+            }
+
+            // Validate Phone Number
+            const phone = $('#phone').val().trim();
+            const phoneRegex = /^\d{10}$/;
+            if (!phoneRegex.test(phone)) {
+                $('#phoneError').text('Phone number must be exactly 10 digits.');
+                isValid = false;
+            } else {
+                $('#phoneError').text('');
+            }
+
+            // Validate Date of Birth
+            const dob = $('#dob').val().trim();
+            const dobDate = new Date(dob);
+            const today = new Date();
+            const minDate = new Date(today.getFullYear() - 70, today.getMonth(), today.getDate());
+            const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate());
+
+            if (dobDate > maxDate || dobDate < minDate) {
+                $('#dobError').text('Date of Birth must be for an age between 18 and 70.');
+                isValid = false;
+            } else {
+                $('#dobError').text('');
+            }
+
+            $('#submit').prop('disabled', !isValid);
+        }
+
+        function setDateRestrictions() {
+            const today = new Date();
+            const minDate = new Date(today.getFullYear() - 70, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+            const maxDate = new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()).toISOString().split('T')[0];
+
+            $('#dob').attr('min', minDate);
+            $('#dob').attr('max', maxDate);
+        }
+
+        // Attach event listeners
+        $('#housename, #pincode, #phone, #dob').on('input', validateForm);
+
+        // Set initial date restrictions and perform validation
+        setDateRestrictions();
+        validateForm();
+    });
+</script>
+<div id="flash-message-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash-message" data-category="{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check for flash messages
+        const flashMessages = document.querySelectorAll('.flash-message');
+        flashMessages.forEach(function(messageElement) {
+            const category = messageElement.getAttribute('data-category');
+            const message = messageElement.innerText;
+
+            if (category === 'success') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Profile Updated',
+                    text: message,
+                    confirmButtonText: 'OK'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.location.href = "{{ url_for('index') }}";
+                    }
+                });
+            } else if (category === 'danger') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: message,
+                    confirmButtonText: 'OK'
+                });
+            }
+        });
+    });
+</script>
+</body>
+</html>

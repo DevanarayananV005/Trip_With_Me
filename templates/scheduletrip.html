@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Schedule Trip</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- MATERIAL DESIGN ICONIC FONT -->
+    <link rel="stylesheet" href="static/fonts_s/material-design-iconic-font/css/material-design-iconic-font.min.css">
+
+    <!-- STYLE CSS -->
+    <link rel="stylesheet" href="static/css_s/style.css">
+    
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Set minimum date for tripdate input to tomorrow's date
+            var tripdateInput = document.getElementById('tripdate');
+            var today = new Date();
+            var tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            var dd = String(tomorrow.getDate()).padStart(2, '0');
+            var mm = String(tomorrow.getMonth() + 1).padStart(2, '0'); //January is 0!
+            var yyyy = tomorrow.getFullYear();
+
+            tomorrow = yyyy + '-' + mm + '-' + dd;
+            tripdateInput.setAttribute('min', tomorrow);
+
+            document.getElementById('scheduletrip').addEventListener('submit', function (event) {
+                var isValid = true;
+                var destination = document.getElementById('destination');
+                var tripdate = document.getElementById('tripdate');
+                var budget = document.getElementById('budget');
+
+                if (destination.value === '') {
+                    isValid = false;
+                    destination.classList.add('is-invalid');
+                } else {
+                    destination.classList.remove('is-invalid');
+                }
+
+                if (tripdate.value === '') {
+                    isValid = false;
+                    tripdate.classList.add('is-invalid');
+                } else {
+                    tripdate.classList.remove('is-invalid');
+                }
+
+                if (budget.value === '') {
+                    isValid = false;
+                    budget.classList.add('is-invalid');
+                } else {
+                    budget.classList.remove('is-invalid');
+                }
+
+                if (!isValid) {
+                    event.preventDefault(); // Prevent form submission if validation fails
+                }
+            });
+
+            // Handle flash messages
+            const flashMessages = document.querySelectorAll('.flash-message');
+            flashMessages.forEach(function(messageElement) {
+                const category = messageElement.getAttribute('data-category');
+                const message = messageElement.innerText;
+
+                if (category === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Trip Scheduled',
+                        text: message,
+                        confirmButtonText: 'OK'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.location.href = "{{ url_for('index') }}";
+                        }
+                    });
+                } else if (category === 'danger' || category === 'warning') {
+                    Swal.fire({
+                        icon: category === 'danger' ? 'error' : 'warning',
+                        title: category === 'danger' ? 'Error' : 'Warning',
+                        text: message,
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        });
+    </script>
+    <style>
+        .is-invalid {
+            border-color: red;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="wrapper" style="background-image: url('static/images/aes12.jpg');">
+        <div class="inner" style="height: 411px;">
+            <div class="image-holder">
+                <img src="static/images/aes13.jpg" alt="" style="height:370px;">
+            </div>
+            <form name="scheduletrip" id="scheduletrip" action="/scheduletrip" method="POST">
+                <h3>SCHEDULE TRIP</h3>
+                <div class="form-wrapper">
+                    <select name="destination" id="destination" class="form-control">
+                        <option value="" disabled selected>Select Destination</option>
+                    </select>
+                    <i class="zmdi zmdi-caret-down" style="font-size: 17px"></i>
+                </div>
+                <div class="form-wrapper">
+                    <label> Select Date for Trip:</label>
+                    <input type="date" name="tripdate" id="tripdate" placeholder="Trip date" class="form-control">
+                </div>
+                <div class="form-wrapper">
+                    <select name="budget" id="budget" id="" class="form-control">
+                        <option value="" disabled selected>Select Budget</option>
+                        <option value="Hitchhicking">Hitchhicking</option>
+                        <option value="Backpacking">Backpacking</option>
+                        <option value="Luxuary">Luxuary</option>
+                    </select>
+                    <i class="zmdi zmdi-caret-down" style="font-size: 17px"></i>
+                </div>
+                <button name="submit" id="submit" class="submit">Schedule Trip
+                    <i class="zmdi zmdi-arrow-right"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Flash message container -->
+    <div id="flash-message-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="flash-message" data-category="{{ category }}" style="display: none;">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+    
+</body>
+<script>
+    // List of Indian states
+    const statesOfIndia = [
+        "Andhra Pradesh",
+        "Arunachal Pradesh",
+        "Assam",
+        "Bihar",
+        "Chhattisgarh",
+        "Goa",
+        "Gujarat",
+        "Haryana",
+        "Himachal Pradesh",
+        "Jharkhand",
+        "Karnataka",
+        "Kerala",
+        "Madhya Pradesh",
+        "Maharashtra",
+        "Manipur",
+        "Meghalaya",
+        "Mizoram",
+        "Nagaland",
+        "Odisha",
+        "Punjab",
+        "Rajasthan",
+        "Sikkim",
+        "Tamil Nadu",
+        "Telangana",
+        "Tripura",
+        "Uttar Pradesh",
+        "Uttarakhand",
+        "West Bengal",
+        "Andaman and Nicobar Islands",
+        "Chandigarh",
+        "Dadra and Nagar Haveli and Daman and Diu",
+        "Delhi",
+        "Lakshadweep",
+        "Puducherry"
+    ];
+
+    // Get the select element
+    const selectElement = document.getElementById("destination");
+
+    // Populate the select element with options
+    statesOfIndia.forEach(state => {
+        const option = document.createElement("option");
+        option.value = state;
+        option.textContent = state;
+        selectElement.appendChild(option);
+    });
+</script>
+</html>
