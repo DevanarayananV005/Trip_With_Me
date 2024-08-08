@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='test.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .dynamic-box {
+            max-height: 600px; /* Adjust the height as needed */
+            overflow-y: auto;
+        }
+        #scheduled-trip {
+            max-height: 300px; /* Adjust the height as needed */
+            overflow-y: auto;
+        }
+        #confirmed-trip {
+            max-height: 300px; /* Adjust the height as needed */
+            overflow-y: auto;
+        }
+        .dynamic-box table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .dynamic-box th, .dynamic-box td {
+            padding: 8px;
+            text-align: left;
+        }
+        .dynamic-box th {
+            background-color: #f2f2f2;
+        }
+        .dynamic-box td.green {
+            color: green;
+        }
+    </style>
+    <!-- Include jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Include jsPDF and autoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.4/purify.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <div class="admin-panel">
+        <nav class="navbar">
+            <img src="{{ url_for('static', filename='images/aes11.png') }}" alt="Company Logo" class="logo">
+            <center><span style="margin-left: 402p"><b>Admin Panel</b></span></center>
+            <div class="user-menu">
+                <img src="{{ url_for('static', filename='images/user.png') }}" alt="User" class="user-image" onclick="toggleDropdown()">
+                <div class="dropdown-menu" id="dropdownMenu">
+                    <a href="{{ url_for('logout') }}">Logout</a>
+                </div>
+            </div>
+        </nav>
+        <div class="main">
+            <nav class="sidebar" id="sidebar">
+                <button class="togglebtn" onclick="toggleSidebar()">☰</button>
+                <ul>
+                    <li><a href="#" onclick="showSection('dashboard')"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
+                    <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Users</span></a></li>
+                    <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Schedule Trip</span></a></li>
+                    <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-line"></i> <span class="nav-text">Reports</span></a></li>
+                </ul>
+            </nav>
+            <div class="content" id="content">
+                <section id="dashboard" class="section active">
+                    <h1><b style="color:white;">Log Data</b></h1><br>
+                    <div class="dynamic-box" id="log-data">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sl.No</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Login Date</th>
+                                    <th>Login Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for idx, log in log_data|enumerate(1) %}
+                                <tr>
+                                    <td>{{ idx }}</td>
+                                    <td>{{ log.name }}</td>
+                                    <td>{{ log.email }}</td>
+                                    <td class="green">{{ log.login_date }}</td>
+                                    <td class="green">{{ log.login_time }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <section id="users" class="section">
+                    <h1><b style="color:white;">User Data</b></h1><br>
+                    <div class="dynamic-box" id="user-data">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Sl No</th>
+                                    <th>Image</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Show Details</th>
+                                    <th>Acc_Completion</th>
+                                    <th>Role</th>
+                                    <th>Account Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for user in user_data %}
+                                <tr>
+                                    <td>{{ user.sl_no }}</td>
+                                    <td><img src="{{ url_for('static', filename='images/' ~ user.image) }}" alt="Not vailable" style="height: 50px; width: 50px; border-radius: 50%;"></td>
+                                    <td>{{ user.name }}</td>
+                                    <td>{{ user.email }}</td>
+                                    <td><button class="btn btn-info" onclick="showDetails('{{ user.user_id }}')">Show Details</button></td>
+                                    <td>
+                                        {% if user.status == 2 %}
+                                        <span style="color: green;">Completed</span>
+                                        {% elif user.status == 0 or user.status == 1 %}
+                                        <span style="color: red;">Not completed</span>
+                                        {% elif user.status == 4 %}
+                                        <span style="color: red;">Deactivated</span>
+                                        {% else %}
+                                        <span>Not Available</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.role == 0 %}
+                                        Tourist
+                                        {% elif user.role == 1 %}
+                                        Package Manager
+                                        {% elif user.role == 3 %}
+                                        Cab Driver
+                                        {% else %}
+                                        Not Available
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if user.status < 4 %}
+                                        <button class="btn btn-danger" onclick="deactivateUser('{{ user.user_id }}', this)">Deactivate</button>
+                                        {% else %}
+                                        <button class="btn btn-secondary" disabled>Deactivated</button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        <!-- Modal -->
+                        <div class="modal fade" id="userDetailsModal" tabindex="-1" aria-labelledby="userDetailsModalLabel" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="userDetailsModalLabel">User Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <table class="table">
+                                            <tr>
+                                                <th>House Name</th>
+                                                <td id="modal-adname"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>District</th>
+                                                <td id="modal-district"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>D.O.B</th>
+                                                <td id="modal-dob"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Pin Code</th>
+                                                <td id="modal-pin"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Phone</th>
+                                                <td id="modal-phone"></td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                <section id="settings" class="section">  
+                    <h1><b style="color:white;">Scheduled Trip</b></h1><br>
+                    <div class="dynamic-box" id="scheduled-trip">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Serial No</th>
+                                <th>Scheduler</th>
+                                <th>Email</th>
+                                <th>Destination</th>
+                                <th>Date</th>
+                                <th>Budget</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trip in scheduled_trips %}
+                            <tr>
+                                <td>{{ trip.sl_no }}</td>
+                                <td>{{ trip.scheduler }}</td>
+                                <td>{{ trip.email }}</td>
+                                <td>{{ trip.destination }}</td>
+                                <td>{{ trip.tripdate }}</td>
+                                <td>{{ trip.budget }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <br>
+                <h1><b style="color:white;">Confirmed Trip</b></h1><br>
+                <div class="dynamic-box" id="confirmed-trip">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Serial No</th>
+                                <th>Scheduler</th>
+                                <th>Companion</th>
+                                <th>Destination</th>
+                                <th>Date</th>
+                                <th>Budget</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trip in confirmed_trips %}
+                            <tr>
+                                <td>{{ trip.sl_no }}</td>
+                                <td>{{ trip.scheduler }}</td>
+                                <td>{{ trip.companion }}</td>
+                                <td>{{ trip.destination }}</td>
+                                <td>{{ trip.tripdate }}</td>
+                                <td>{{ trip.budget }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                </section>
+                <section id="reports" class="section">
+                    <h1><b style="color:white;">Reports</b></h1><br>
+                    <div class="dynamic-box" id="reports">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Sl No</th>
+                                    <th>Description</th>
+                                    <th>Download</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>1</td>
+                                    <td>Click Here to print Log Data</td>
+                                    <td><button class="btn btn-primary" onclick="loadJsPDFAndGeneratePDF('log-data', 'Log Data')">Download</button></td>
+                                </tr>
+                                <tr>
+                                    <td>2</td>
+                                    <td>Click Here to print Scheduled Trip Report</td>
+                                    <td><button class="btn btn-primary" onclick="loadJsPDFAndGeneratePDF('scheduled-trip', 'Scheduled Trip Report')">Download</button></td>
+                                </tr>
+                                <tr>
+                                    <td>3</td>
+                                    <td>Click Here to print Confirmed Trip Report</td>
+                                    <td><button class="btn btn-primary" onclick="loadJsPDFAndGeneratePDF('confirmed-trip', 'Confirmed Trip Report')">Download</button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showDetails(userId) {
+            const user = {{ user_data|tojson }};
+            const userDetails = user.find(u => u.user_id === userId);
+    
+            if (userDetails) {
+                document.getElementById('modal-adname').innerText = userDetails.adname;
+                document.getElementById('modal-district').innerText = userDetails.district;
+                document.getElementById('modal-dob').innerText = userDetails.dob;
+                document.getElementById('modal-pin').innerText = userDetails.pin;
+                document.getElementById('modal-phone').innerText = userDetails.phone;
+    
+                const modal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+                modal.show();
+            }
+        }
+    
+        function deactivateUser(userId, button) {
+            $.post(`/deactivate_user/${userId}`, function(response) {
+                if (response.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Account Deactivated Successfully',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        button.innerText = 'Deactivated';
+                        button.classList.remove('btn-danger');
+                        button.classList.add('btn-secondary');
+                        button.disabled = true;
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.error,
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        }
+    
+        function loadJsPDFAndGeneratePDF(elementId, reportTitle) {
+            if (!window.jspdf) {
+                const script = document.createElement('script');
+                script.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js";
+                script.onload = () => {
+                    const autoTableScript = document.createElement('script');
+                    autoTableScript.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.13/jspdf.plugin.autotable.min.js";
+                    autoTableScript.onload = () => generatePDF(elementId, reportTitle);
+                    document.head.appendChild(autoTableScript);
+                };
+                document.head.appendChild(script);
+            } else {
+                generatePDF(elementId, reportTitle);
+            }
+        }
+    
+        function generatePDF(elementId, reportTitle) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+    
+            const element = document.getElementById(elementId);
+            const data = [];
+            const headers = [];
+            element.querySelectorAll('thead th').forEach(th => headers.push(th.innerText));
+            element.querySelectorAll('tbody tr').forEach(tr => {
+                const row = [];
+                tr.querySelectorAll('td').forEach(td => row.push(td.innerText));
+                data.push(row);
+            });
+    
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const title = "Trip With Me";
+            const subTitle = reportTitle;
+            const date = new Date();
+    
+            // Center the title
+            doc.setFontSize(16);
+            doc.text(title, pageWidth / 2, 10, { align: 'center' });
+    
+            // Center the subtitle
+            doc.setFontSize(12);
+            doc.text(subTitle, pageWidth / 2, 20, { align: 'center' });
+    
+            // Date and time
+            doc.setFontSize(10);
+            doc.text(`Generated on: ${date.toLocaleString()}`, pageWidth - 10, 10, { align: 'right' });
+    
+            doc.autoTable({
+                head: [headers],
+                body: data,
+                startY: 30,
+                styles: { fontSize: 8, cellPadding: 2 },
+                columnStyles: {
+                    0: { cellWidth: 20 }, // Adjust the width of the first column
+                    1: { cellWidth: 40 }, // Adjust the width of the second column
+                    2: { cellWidth: 60 }, // Adjust the width of the third column
+                    // Add more column styles as needed
+                }
+            });
+    
+            doc.save(`${reportTitle}.pdf`);
+        }
+    </script>
+</body>
+</html>

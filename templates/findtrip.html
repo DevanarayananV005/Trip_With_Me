@@ -3,29 +3,205 @@
         <title>Find Trip</title>
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-    </head>
-    <body style="font-family: 'Courier New', Courier, monospace;">
-        <nav class="navbar navbar-expand-lg fixed-top" style="background:black;">
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <style>
+          .rectangular-box {
+              height: 330px;
+              width: 287px;
+              margin-left: 20px;
+              border: 2px solid black;
+              background-color: #f0f0f0; /* Light gray background */
+              padding: 10px;
+              box-sizing: border-box; /* Light gray background */
+          }
+          .rectangular-box img {
+            height: 150px;
+            width: 284px;
+            margin-top:0;
+            margin-top: -10px;
+            margin-left: -10px;
+
+          }
+        .rectangular-box p {
+            margin-top: 10px;
+            text-align: left;
+        }
+      </style>
+      </head>
+    <body style="font-family: 'Courier New', Courier, monospace;background:black;">
+      <div class="navbar mt-0 pt-0">
+        <nav class="navbar navbar-expand-lg sticky-top w-100" style="background:black;">
             <div class="container-fluid">
-                <a class="navbar-brand" href="#home"><image src="static/images/aes11.png" style="width:50px;height:50px;"></a>
-              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-                <span class="navbar-toggler-icon"></span>
-              </button>
-              <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                  <li class="nav-item">
-                    <a class="nav-link active" aria-current="page" style="color:white;"  href="#">Home</a>
-                  </li>
-                  <li class="nav-item">
-                    <a class="nav-link" style="color:white;"  href="#">Link</a>
-                  </li>
-                </ul>
-                <form class="d-flex" role="search">
-                  <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-                  <button class="btn btn-outline-success" type="submit">Search</button>
-                </form>
-              </div>
+                    <img src="static/images/aes11.png" style="width:50px;height:50px;" alt="Brand Logo">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}">Home</a>
+                        </li>
+                    </ul>
+                    <form class="d-flex" role="search">
+                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                        <button class="btn btn-outline-success" type="submit">Search</button>
+                    </form>
+                </div>
             </div>
-          </nav>
+        </nav>
+    </div>
+       
+    <div class="container mt-4">
+      <div class="row">
+          {% if trips_data %}
+              {% for trip in trips_data %}
+                  <div class="col-md-4">
+                      <div class="rectangular-box">
+                          <img src="static/images/states/{{ trip.destination }}.jpg" alt="Image">
+                          <p>
+                              <b>Destination:</b> {{ trip.destination }}<br>
+                              <b>Date:</b> {{ trip.tripdate }} <br>
+                              <b>Tourist:</b> {{ trip.name }} <br>
+                              <b>Budget:</b> {{ trip.budget }} <br>
+                              <b>Rating:</b><br>
+                              <!-- Unique modal for each trip -->
+                              <button type="button" class="btn btn-outline-info" style="width: 263px;" data-bs-toggle="modal" data-bs-target="#exampleModal{{ loop.index }}">Show Details</button>
+                          </p>
+                      </div>
+                  </div>
+                  {% if loop.index % 3 == 0 %}
+                      </div><div class="row">
+                  {% endif %}
+              {% endfor %}
+          {% else %}
+              <p><h1 align="center" style="color:white; font-weight:bold;">No Trips are available currently</h1></p><br>
+                <p align="center" style="color:white;">You can add trip-><a href="{{ url_for('scheduletrip') }}">Add Trip</a></p><br>
+                <p align="center" style="color:white;">Back to Main Page-><a href="{{ url_for('index') }}">Home</a></p>
+          {% endif %}
+      </div>
+    </div>
+    
+
+  <!-- Modal Code -->
+  {% for trip in trips_data %}
+  <div class="modal fade" id="exampleModal{{ loop.index }}" tabindex="-1" aria-labelledby="exampleModalLabel{{ loop.index }}" aria-hidden="true">
+      <div class="modal-dialog">
+          <div class="modal-content">
+              <div class="modal-header">
+                  <h1 class="modal-title fs-5" id="exampleModalLabel{{ loop.index }}">User Details<br></h1>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+              </div>
+              <div class="modal-body">
+                  <p style="color:green">This has the details of the tourist who scheduled the trip. If you want to continue to send a request, type the message in the area and send the request!</p><br>
+                  <img align="right" id="user-image-{{ loop.index }}" src="{{ url_for('static', filename='images/' ~ trip.image) }}" alt="User Image" style="width: 100px; height: 100px;">
+                  <p><b>Name:</b> {{ trip.name }}</p>
+                  <p><b>State:</b> {{ trip.state }}</p>
+                  <p><b>Age:</b> {{ trip.age }}</p>
+                  <form method="POST" id="sendrequest-{{ loop.index }}" onsubmit="event.preventDefault(); sendRequest({{ loop.index }})">
+                      <input type="hidden"  id="sender-id-{{ loop.index }}" value="{{ trip.sender_id }}">
+                      <input type="hidden" id="receiver-id-{{ loop.index }}" value="{{ trip.receiver_id }}">
+                      <input type="hidden"  id="schedule-trip-id-{{ loop.index }}" value="{{ trip.id }}">
+                      <div class="mb-3">
+                          <label for="message-text-{{ loop.index }}" class="col-form-label">Message:</label>
+                          <textarea class="form-control" id="message-text-{{ loop.index }}" oninput="validateMessage({{ loop.index }})" name="message"></textarea>
+                          <div id="message-error-{{ loop.index }}" style="color: red; display: none;">Message must contain between 10 and 150 letters.</div>
+                      </div>
+                      <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                          <button type="submit" id="submit-{{ loop.index }}" name="sub" class="btn btn-primary">Send Request</button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      </div>
+  </div>
+{% endfor %}
+
+
+
+  <!-- Validation -->
+  <script>
+    function validateMessage(index) {
+      const textarea = document.getElementById(`message-text-${index}`);
+      const errorDiv = document.getElementById(`message-error-${index}`);
+      const text = textarea.value.trim();
+      const letterCount = text.length;
+
+      if (letterCount < 10 || letterCount > 150) {
+          errorDiv.style.display = 'block';
+          return false;
+      } else {
+          errorDiv.style.display = 'none';
+          return true;
+      }
+  }
+
+  function saveChanges(index) {
+      if (validateMessage(index)) {
+          // Perform save operation here
+          alert('Message is valid and changes are saved.');
+      } else {
+          alert('Please ensure the message contains between 10 and 150 letters.');
+      }
+  }
+
+  function sendRequest(index) {
+    if (validateMessage(index)) {
+        const message = document.getElementById(`message-text-${index}`).value;
+        const senderId = document.getElementById(`sender-id-${index}`).value;
+        const receiverId = document.getElementById(`receiver-id-${index}`).value;
+        const scheduleTripId = document.getElementById(`schedule-trip-id-${index}`).value;
+
+        if (senderId === receiverId) {
+            alert('Sorry, you can\'t send a request to yourself.');
+        } else {
+            $.ajax({
+                type: 'POST',
+                url: '/sendrequest',
+                data: {
+                    message: message,
+                    sender_id: senderId,
+                    receiver_id: receiverId,
+                    request_status: 0,
+                    scheduletrip_id: scheduleTripId
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Request Sent Successfully! If any reply comes you will be notified.',
+                            icon: 'success',
+                            confirmButtonText: 'OK'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                window.location.href = "{{ url_for('index') }}";
+                            }
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Error!',
+                            text: response.message,
+                            icon: 'error',
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Error submitting request.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            });
+        }
+    } else {
+        alert('Please ensure the message contains between 10 and 150 letters.');
+    }
+  }
+  </script>
+
     </body>
 </html>

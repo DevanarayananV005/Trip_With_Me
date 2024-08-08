@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .content-box {
+            width: 100%;
+            max-width: 800px;
+            background-color: black; /* Light grey background */
+            border-radius: 15px; /* Curvy edges */
+            margin: 50px auto; /* Center align and space from navbar */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional shadow for better visibility */
+            padding: 20px;
+            color: white;
+;        }
+        .notification-item {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .notification-item img {
+            max-width: 100px;
+            max-height: 100px;
+        }
+    </style>
+</head>
+<body style="font-family: 'Courier New', Courier, monospace; background: white;">
+    <div class="navbar mt-0 pt-0">
+        <nav class="navbar navbar-expand-lg sticky-top w-100" style="background: black;">
+            <div class="container-fluid">
+                <img src="{{ url_for('static', filename='images/aes11.png') }}" style="width: 50px; height: 50px;" alt="Brand Logo">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color: white;" href="{{ url_for('index') }}">Home</a>
+                        </li>
+                    </ul>
+                    <!-- <form class="d-flex" role="search">
+                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
+                        <button class="btn btn-outline-success" type="submit">Search</button>
+                    </form> -->
+                </div>
+            </div>
+        </nav>
+    </div>
+    <div> 
+        <h1 align="center"style="color:black;">
+            <b>NOTIFICATIONS</b>
+        </h1>
+    </div>
+    <!-- Content Box -->
+    <div class="content-box">
+        {% if notifications %}
+            {% for notification in notifications %}
+                <div class="notification-item">
+                    <img src="{{ url_for('static', filename='images/' ~ notification.image) }}" style="height:50px;width:50px;border-radius:50%;" alt="Sender Image">
+                    <p><b>Name:</b> {{ notification.name }} <b style="padding-left:30px">Age:</b> {{ notification.age }} <b style="padding-left:30px">Destination:</b> {{ notification.destination }} <b>State:</b> {{ notification.state }}</p>
+                    <p><b>Date:</b> {{ notification.tripdate }} <b style="padding-left:30px">Budget:</b> {{ notification.budget }}  
+                        {% if notification.request_status == 1 and not notification.accepted %}
+                            <button style="margin-left:200px" class="btn btn-success" disabled>Your request is accepted</button>
+                        {% elif notification.tripstatus == 1 and notification.request_status == 0 %}
+                            <button style="margin-left:200px" class="btn btn-danger" disabled>Request Rejected</button>
+                        {% elif notification.accepted %}
+                            <button style="margin-left:200px" class="btn btn-success" disabled>Your request is accepted</button>
+                        {% else %}
+                            <form action="{{ url_for('accept_request') }}" method="POST" style="display: inline;">
+                                <input type="hidden" name="request_id" value="{{ notification.request_id }}">
+                                <input type="hidden" name="scheduletrip_id" value="{{ notification.scheduletrip_id }}">
+                                <button type="submit" style="margin-left:100px" class="btn btn-primary">Accept the request</button>
+                            </form>
+                        {% endif %}
+                    </p>
+                    
+                </div>
+            {% endfor %}
+        {% else %}
+            <p><strong>No notifications available.</strong></p>
+        {% endif %}
+    </div>
+</body>
+ <!-- Add this script at the end of your body tag -->
+ <script>
+    // Display flash messages using SweetAlert
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                Swal.fire({
+                    icon: '{{ 'success' if category == 'success' else 'error' }}',
+                    title: '{{ 'Success' if category == 'success' else 'Error' }}',
+                    text: '{{ message }}',
+                });
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</script>
+</html>
