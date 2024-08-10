@@ -76,6 +76,11 @@ def send_otp_email(to_email, otp):
     except Exception as e:
         print(f'Error sending email: {str(e)}')
 
+@app.template_filter('enumerate')
+def do_enumerate(iterable, start=0):
+    return enumerate(iterable, start=start)
+
+
 @app.route('/')
 def index():
     if 'user' in session:
@@ -115,7 +120,8 @@ def register():
                 "otp": otp,
                 "otpVerified": False,
                 "status": 0,
-                "role" : 0  # Default value for status
+                "role" : 0,
+                "c_status" : 0   # Default value for status
             }
             db.child("users").child(user['localId']).set(user_data)
             send_otp_email(email, otp)
@@ -457,8 +463,13 @@ def findtrip():
                     trips_data.append(trip_info)
 
                 print("Trips data:", trips_data)
-            
-            return render_template('findtrip.html', trips_data=trips_data)
+
+            # Fetch the logged-in user's image
+            logged_in_user_id = session['user_id']
+            logged_in_user_data = db.child("per_det").child(logged_in_user_id).get().val()
+            user_image = logged_in_user_data.get('image', 'default_image.jpg')  # Use a default image if not found
+
+            return render_template('findtrip.html', trips_data=trips_data, user_image=user_image)
         except Exception as e:
             print(f"Error: {str(e)}")
             flash(f'Error fetching trip data: {str(e)}', 'danger')
@@ -466,7 +477,6 @@ def findtrip():
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
-
 
 #triprequest
 @app.route('/sendrequest', methods=['POST'])
@@ -564,7 +574,6 @@ def check_messages():
 
 
 #notifications
-
 @app.route('/notifications')
 def notifications():
     if 'user' in session:
@@ -636,7 +645,11 @@ def notifications():
                         }
                         notifications.append(notification)
 
-        return render_template('notifications.html', notifications=notifications)
+        # Fetch the logged-in user's image
+        logged_in_user_data = db.child("per_det").child(user_id).get().val()
+        user_image = logged_in_user_data.get('image', 'default_image.jpg')  # Use a default image if not found
+
+        return render_template('notifications.html', notifications=notifications, user_image=user_image)
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
@@ -665,7 +678,92 @@ def accept_request():
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
+    
+#upgrade_account
+@app.route('/upgrade_account', methods=['GET', 'POST'])
+def upgrade_account():
+    if 'user' in session:
+        user_id = session['user_id']
+        if request.method == 'POST':
+            company_name = request.form['company_name']
+            company_number = request.form['company_number']
+            company_email = request.form['company_email']
+            state = request.form['state']
+            district = request.form['district']
+            company_begin_date = request.form['company_begin_date']
+            ownership_certificate = request.files['ownership_certificate']
+            
+            # Save the ownership certificate
+            certificate_filename = f"{user_id}_{ownership_certificate.filename}"
+            certificate_path = os.path.join('static', 'images', certificate_filename)
+            ownership_certificate.save(certificate_path)
+            
+            # Generate OTP
+            otp = random.randint(100000, 999999)
+            
+            # Store data in the database
+            package_manager_data = {
+                "c_name": company_name,
+                "c_phone": company_number,
+                "c_email": company_email,
+                "state": state,
+                "district": district,
+                "c_startdate": company_begin_date,
+                "c_ownership": certificate_filename,
+                "status": 0,
+                "e_status": 0,
+                "user_id": user_id,
+                "otp": otp
+            }
+            db.child("package_manager").child(user_id).set(package_manager_data)
+            
+            # Send OTP email
+            send_otp_email(company_email, otp)
+            
+            # Show success alert and redirect to OTP verification page
+            flash('Data entered successfully to database. An OTP is sent to the given email. Verify the email.', 'success')
+            return redirect(url_for('verify_otp_page'))
+        
+        return render_template('upgrade_account.html')
+    else:
+        flash('User not logged in.', 'danger')
+        return redirect(url_for('login'))
 
+@app.route('/verify_otp_page', methods=['GET', 'POST'])
+def verify_otp_page():
+    if 'user' in session:
+        user_id = session['user_id']
+        if request.method == 'POST':
+            entered_otp = request.form['otp']
+            package_manager_data = db.child("package_manager").child(user_id).get().val()
+            actual_otp = package_manager_data.get('otp')
+            
+            if str(entered_otp) == str(actual_otp):
+                # Update email verification status
+                db.child("package_manager").child(user_id).update({"e_status": 1})
+                
+                # Update user role
+                db.child("users").child(user_id).update({"role": 1})
+                
+                # Show success alert and logout
+                flash('Email verified successfully. After approval, you will be notified.', 'success')
+                return redirect(url_for('logout'))
+            else:
+                flash('Invalid OTP. Please try again.', 'danger')
+        
+        return render_template('verify_otp_page.html')
+    else:
+        flash('User not logged in.', 'danger')
+        return redirect(url_for('login'))
+
+#package_manager
+@app.route('/pack_manager')
+def pack_manager():
+    if 'user' in session and session['user_id']:
+        return render_template('pack_manager.html')
+    else:
+        flash('User not logged in.', 'danger')
+        return redirect(url_for('login'))
 
 #admin_route
 @app.route('/admin')
@@ -678,6 +776,12 @@ def admin():
         # Fetch users data
         users = db.child("users").get().val()
         per_det = db.child("per_det").get().val()
+        package_managers = db.child("package_manager").get().val()
+
+        # Debug prints
+        print("Users:", users)
+        print("Personal Details:", per_det)
+        print("Package Managers:", package_managers)
 
         # Process and combine the data
         processed_log_data = []
@@ -754,10 +858,38 @@ def admin():
                         'budget': trip.get('budget', 'Unknown')
                     })
 
-        return render_template('admin.html', log_data=processed_log_data, user_data=user_data, scheduled_trips=scheduled_trips, confirmed_trips=confirmed_trips, enumerate=enumerate)
+        # Process package manager data
+        package_manager_data = []
+        if package_managers and users:
+            for idx, (pm_id, pm) in enumerate(package_managers.items(), start=1):
+                user_id = pm.get('user_id')
+                user = users.get(user_id, {})
+                personal_details = per_det.get(user_id, {})
+                package_manager_data.append({
+                    'sl_no': idx,
+                    'c_name': pm.get('c_name', 'Unknown'),
+                    'c_email': pm.get('c_email', 'Unknown'),
+                    'c_ownership': pm.get('c_ownership', 'Unknown'),
+                    'user_id': user_id,
+                    'status': pm.get('status', 0),
+                    'c_status': user.get('status', 0),
+                    'owner_name': user.get('name', 'Unknown'),
+                    'owner_email': user.get('email', 'Unknown'),
+                    'company_number': pm.get('c_phone', 'Unknown'),
+                    'owner_number': personal_details.get('phone', 'Unknown'),
+                    'c_startdate': pm.get('c_startdate', 'Unknown'),
+                    'state': pm.get('state', 'Unknown'),
+                    'district': pm.get('district', 'Unknown')
+                })
+
+        # Debug print for package_manager_data
+        print("Package Manager Data:", package_manager_data)
+
+        return render_template('admin.html', log_data=processed_log_data, user_data=user_data, scheduled_trips=scheduled_trips, confirmed_trips=confirmed_trips, package_manager_data=package_manager_data, enumerate=enumerate)
     else:
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('login'))
+    
 
 #deactivate user
 @app.route('/deactivate_user/<user_id>', methods=['POST'])
@@ -771,6 +903,64 @@ def deactivate_user(user_id):
             return jsonify({"success": False, "error": str(e)})
     else:
         return jsonify({"success": False, "error": "Unauthorized access"})
+
+@app.route('/get_user_details/<user_id>', methods=['GET'])
+def get_user_details(user_id):
+    user = db.child("users").child(user_id).get().val()
+    package_manager = db.child("package_manager").child(user_id).get().val()
+    personal_details = db.child("per_det").child(user_id).get().val()
+
+    if user and package_manager and personal_details:
+        return jsonify({
+            'name': user.get('name', 'Unknown'),
+            'email': user.get('email', 'Unknown'),
+            'c_phone': package_manager.get('c_phone', 'Unknown'),
+            'phone': personal_details.get('phone', 'Unknown'),
+            'c_startdate': package_manager.get('c_startdate', 'Unknown'),
+            'state': package_manager.get('state', 'Unknown'),
+            'district': package_manager.get('district', 'Unknown')
+        })
+    else:
+        return jsonify({'error': 'User not found'}), 404
+    
+
+
+@app.route('/update_status/<user_id>/<int:new_status>', methods=['POST'])
+def update_status(user_id, new_status):
+    try:
+        db.child("package_manager").child(user_id).update({"status": new_status})
+        db.child("users").child(user_id).update({"c_status": new_status})
+
+        if new_status == 1:
+            user = db.child("users").child(user_id).get().val()
+            package_manager = db.child("package_manager").child(user_id).get().val()
+            send_approval_email(package_manager.get('c_email'))
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+def send_approval_email(to_email):
+    subject = 'Company Approved'
+    body = '<p style="color:green;font-weight:bold;">Congratulations your company is Approved!!!! <span>Welcome to Trip With Me</span>Hope a great business for the future now you can login to your package_manager terminal</p>'
+    
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USERNAME
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'html'))
+    
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(SMTP_USERNAME, to_email, text)
+        server.quit()
+        print(f'Email sent to {to_email}')
+    except Exception as e:
+        print(f'Error sending email: {str(e)}')
 
 
 #login
@@ -790,6 +980,8 @@ def login():
             user = auth.sign_in_with_email_and_password(email, password)
             user_data = db.child("users").child(user['localId']).get().val()
             status = user_data.get('status')
+            role = user_data.get('role')
+            c_status = user_data.get('c_status')
 
             if status == 4:
                 flash('Your account is temporarily deactivated.', 'danger')
@@ -813,11 +1005,18 @@ def login():
             # Push the log entry and get the log entry ID
             db.child("log_data").push(log_entry)
 
-            if status == 0:
+            if status == 0 and role == 0:
                 return redirect(url_for('pers_det'))
-            elif status == 1:
+            elif status == 1 and role ==0:
                 return redirect(url_for('photopik'))
-            elif status == 2:
+            elif status == 2 and role ==0:
+                return redirect(url_for('index'))
+            elif role == 1 and c_status == 1:
+                return redirect(url_for('pack_manager'))
+            elif role == 1 and c_status == 0:
+                flash('Sorry, your account is not approved yet.', 'warning')
+                return redirect(url_for('login'))
+            elif role == 0:
                 return redirect(url_for('index'))
         except Exception as e:
             error_message = str(e)
@@ -837,6 +1036,4 @@ def logout():
     return redirect(url_for('index')) 
 
 if __name__ == '__main__':
-    app.run(debug=True)
-
     app.run(debug=True)

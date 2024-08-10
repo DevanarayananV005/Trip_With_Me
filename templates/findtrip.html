@@ -5,6 +5,8 @@
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        
         <style>
           .rectangular-box {
               height: 330px;
@@ -27,13 +29,25 @@
             margin-top: 10px;
             text-align: left;
         }
+        .notification-icon {
+            font-size: 24px;
+            color: #333;
+            cursor: pointer;
+            text-decoration: none; /* Remove underline */
+        }
+        .notification-icon.new-message {
+            color: green; /* Red for new messages */
+        }
+        .notification-icon.no-message {
+            color: #999999; /* Gray for no messages */
+        }
       </style>
       </head>
     <body style="font-family: 'Courier New', Courier, monospace;background:black;">
       <div class="navbar mt-0 pt-0">
         <nav class="navbar navbar-expand-lg sticky-top w-100" style="background:black;">
             <div class="container-fluid">
-                    <img src="static/images/aes11.png" style="width:50px;height:50px;" alt="Brand Logo">
+                <img src="static/images/aes11.png" style="width:50px;height:50px;" alt="Brand Logo">
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -42,11 +56,22 @@
                         <li class="nav-item">
                             <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}">Home</a>
                         </li>
+                        <li class="nav-item"></li>
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('scheduletrip') }}" target="__blank">Schedule Trip</a>
+                        </li>
                     </ul>
-                    <form class="d-flex" role="search">
-                        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-                        <button class="btn btn-outline-success" type="submit">Search</button>
-                    </form>
+                        
+                    <li class="nav-item" style="margin-left: 800px;">
+                        <a id="notification" class="notification-icon no-message" href="{{ url_for('notifications') }}">
+                            <i class="fas fa-bell"></i>
+                        </a>
+                        
+                        <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-left: 20px;">
+                        <ul style="margin-left: 1435px;" class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">LogOut</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('updateuser') }}">Account Info</a></li>
+                        </ul>
+                    </li>
                 </div>
             </div>
         </nav>
@@ -201,7 +226,31 @@
         alert('Please ensure the message contains between 10 and 150 letters.');
     }
   }
-  </script>
+        // Function to check for new messages
+        function checkForMessages() {
+            fetch('/check_messages')
+                .then(response => response.json())
+                .then(data => {
+                    const hasNewMessages = data.has_new_messages;
+                    const notificationElement = document.getElementById('notification');
+    
+                    if (hasNewMessages) {
+                        notificationElement.classList.remove('no-message');
+                        notificationElement.classList.add('new-message');
+                    } else {
+                        notificationElement.classList.remove('new-message');
+                        notificationElement.classList.add('no-message');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking messages:', error);
+                });
+        }
+    
+        // Check for messages on page load
+        document.addEventListener('DOMContentLoaded', checkForMessages);
+    </script>
+    
 
     </body>
 </html>

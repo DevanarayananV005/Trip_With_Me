@@ -63,6 +63,7 @@
                     <li><a href="#" onclick="showSection('dashboard')"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
                     <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Users</span></a></li>
                     <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Schedule Trip</span></a></li>
+                    <li><a href="#" onclick="showSection('companies')"><i class="fas fa-home"></i> <span class="nav-text">Companies</span></a></li>
                     <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-line"></i> <span class="nav-text">Reports</span></a></li>
                 </ul>
             </nav>
@@ -245,6 +246,86 @@
                     </table>
                 </div>
                 </section>
+                <section id="companies" class="section">  
+                    <h1><b style="color:white;">Package Companies</b></h1><br>
+                    <div class="dynamic-box" id="package-manages">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Sl No</th>
+                                    <th>Company Name</th>
+                                    <th>Company Email</th>
+                                    <th>Ownership Certificate</th>
+                                    <th>Details</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pm in package_manager_data %}
+                                <tr>
+                                    <td>{{ pm.sl_no }}</td>
+                                    <td>{{ pm.c_name }}</td>
+                                    <td>{{ pm.c_email }}</td>
+                                    <td><a href="{{ url_for('static', filename='images/' ~ pm.c_ownership) }}" target="_blank">View PDF</a></td>
+                                    <td><button class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detailsModal" data-user-id="{{ pm.user_id }}">Show Details</button></td>
+                                    <td>
+                                        <button class="btn btn-status {% if pm.status == 0 %}btn-danger{% else %}btn-success{% endif %}" data-user-id="{{ pm.user_id }}" data-status="{{ pm.status }}">
+                                            {% if pm.status == 0 %}Deactive{% else %}Activae{% endif %}
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="detailsModal" tabindex="-1" aria-labelledby="detailsModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="detailsModalLabel">Owner Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <table class="table">
+                                        <tbody>
+                                            <tr>
+                                                <th>Owner Name</th>
+                                                <td id="ownerName"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Owner Email</th>
+                                                <td id="ownerEmail"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Company Number</th>
+                                                <td id="companyNumber"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Owner Number</th>
+                                                <td id="ownerNumber"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Established Date</th>
+                                                <td id="edate"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Company State</th>
+                                                <td id="cstate"></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Company District</th>
+                                                <td id="cdis"></td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </section>
                 <section id="reports" class="section">
                     <h1><b style="color:white;">Reports</b></h1><br>
                     <div class="dynamic-box" id="reports">
@@ -386,5 +467,68 @@
             doc.save(`${reportTitle}.pdf`);
         }
     </script>
+
+    <!-- package manager -->
+    <script>
+       document.addEventListener('DOMContentLoaded', function() {
+    const detailsModal = document.getElementById('detailsModal');
+    detailsModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const userId = button.getAttribute('data-user-id');
+
+        fetch(`/get_user_details/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('ownerName').textContent = data.name;
+                document.getElementById('ownerEmail').textContent = data.email;
+                document.getElementById('companyNumber').textContent = data.c_phone;
+                document.getElementById('ownerNumber').textContent = data.phone;
+                document.getElementById('edate').textContent = data.c_startdate;
+                document.getElementById('cstate').textContent = data.state;
+                document.getElementById('cdis').textContent = data.district;
+            });
+    });
+
+    document.querySelectorAll('.btn-status').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.getAttribute('data-user-id');
+            const currentStatus = parseInt(this.getAttribute('data-status'));
+            const newStatus = currentStatus === 0 ? 1 : 0;
+
+            fetch(`/update_status/${userId}/${newStatus}`, { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        this.classList.toggle('btn-danger', newStatus === 0);
+                        this.classList.toggle('btn-success', newStatus === 1);
+                        this.textContent = newStatus === 0 ? 'Deactivate' : 'Activate';
+                        this.setAttribute('data-status', newStatus);
+
+                        if (newStatus === 1) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'The Company is approved Successfully'
+                            });
+                        }
+                    }
+                });
+        });
+    });
+});
+    </script>
+
+    <!-- Display SweetAlert for flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+          {% for category, message in messages %}
+            Swal.fire({
+              icon: '{{ category }}',
+              title: '{{ message }}'
+            });
+          {% endfor %}
+        </script>
+      {% endif %}
+    {% endwith %}
 </body>
 </html>

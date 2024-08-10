@@ -133,4 +133,18 @@
     {% endwith %}
 </div>
 
+    <!-- Display SweetAlert for flash messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <script>
+          {% for category, message in messages %}
+            Swal.fire({
+              icon: '{{ category }}',
+              title: '{{ message }}'
+            });
+          {% endfor %}
+        </script>
+      {% endif %}
+    {% endwith %}
+    
 {% endblock %}
