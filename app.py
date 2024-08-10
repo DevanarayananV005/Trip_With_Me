@@ -755,11 +755,64 @@ def verify_otp_page():
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
+    
 
-#package_manager
-@app.route('/pack_manager')
+#add package
+@app.route('/pack_manager', methods=['GET', 'POST'])
 def pack_manager():
     if 'user' in session and session['user_id']:
+        if request.method == 'POST':
+            user_id = session['user_id']
+            location = request.form['location']
+            start_date = request.form['startDate']
+            end_date = request.form['endDate']
+            basic_amount = request.form['basicAmount']
+            tax_percentage = request.form['taxPercentage']
+            discount = request.form.get('discount', 0)
+            participants = request.form['participants']
+            description = request.form['description']
+
+            # Save images
+            image1 = request.files['image1']
+            image2 = request.files['image2']
+            image3 = request.files['image3']
+            image1_filename = f"{user_id}_{image1.filename}"
+            image2_filename = f"{user_id}_{image2.filename}"
+            image3_filename = f"{user_id}_{image3.filename}"
+            image1.save(os.path.join('static/images', image1_filename))
+            image2.save(os.path.join('static/images', image2_filename))
+            image3.save(os.path.join('static/images', image3_filename))
+
+            # Prepare data for database
+            trip_data = {
+                "user_id": user_id,
+                "location": location,
+                "start_date": start_date,
+                "end_date": end_date,
+                "basic_amount": basic_amount,
+                "tax_percentage": tax_percentage,
+                "discount": discount,
+                "participants": participants,
+                "description": description,
+                "image1": image1_filename,
+                "image2": image2_filename,
+                "image3": image3_filename,
+                "status": 0
+            }
+
+            # Debug print to verify data
+            print("Trip Data:", trip_data)
+
+            try:
+                # Save data to database
+                db.child("trips").push(trip_data)
+                flash('Package added successfully!', 'success')
+            except Exception as e:
+                print("Error saving to database:", str(e))
+                flash('Error adding data to the database.', 'danger')
+
+            return redirect(url_for('pack_manager'))
+
         return render_template('pack_manager.html')
     else:
         flash('User not logged in.', 'danger')
