@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='test_pack.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <style>
         .dynamic-box {
             display: flex;
@@ -58,9 +59,8 @@
                 <button class="togglebtn" onclick="toggleSidebar()">☰</button>
                 <ul>
                     <li><a href="#" onclick="showSection('add_pack')"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
-                    <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Users</span></a></li>
-                    <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Schedule Trip</span></a></li>
-                    <li><a href="#" onclick="showSection('companies')"><i class="fas fa-home"></i> <span class="nav-text">Companies</span></a></li>
+                    <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Bookings</span></a></li>
+                    <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Packages</span></a></li>
                     <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-line"></i> <span class="nav-text">Reports</span></a></li>
                 </ul>
             </nav>
@@ -136,15 +136,85 @@
                     </div>
                 </section>
                 <section id="settings" class="section">  
+                    <h1><b style="color:white;">Scheduled Packages</b></h1><br>
+                    <div class="dynamic-box" id="scheduled-trip">
+                        <table class="table table-borderless">
+                            <thead>
+                                <tr>
+                                    <th>Sl. No</th>
+                                    <th>Location</th>
+                                    <th>Start Date</th>
+                                    <th>End Date</th>
+                                    <th>See Details</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for idx, trip in enumerate(trips) %}
+                                <tr>
+                                    <td>{{ idx + 1 }}</td>
+                                    <td>{{ trip.location }}</td>
+                                    <td>{{ trip.start_date }}</td>
+                                    <td>{{ trip.end_date }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#detailsModal{{ idx }}">
+                                            See Details
+                                        </button>
+                                        <!-- Modal -->
+                                        <div class="modal fade" id="detailsModal{{ idx }}" tabindex="-1" aria-labelledby="detailsModalLabel{{ idx }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="detailsModalLabel{{ idx }}">Trip Details</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <table class="table table-borderless">
+                                                            <tr>
+                                                                <th>No of Participants</th>
+                                                                <td>{{ trip.participants }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Basic Amount</th>
+                                                                <td>{{ trip.basic_amount }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Tax Percentage</th>
+                                                                <td>{{ trip.tax_percentage }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Discount</th>
+                                                                <td>{{ trip.discount }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Total Amount</th>
+                                                                <td>{{ trip.basic_amount | float - ((trip.tax_percentage | float / 100) * trip.basic_amount | float) - ((trip.discount | float / 100) * trip.basic_amount | float) }}</td>
+                                                            </tr>
+                                                        </table>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <button type="button" class="btn {% if trip.status == 0 %}btn-success{% else %}btn-danger{% endif %}" onclick="toggleStatus('{{ trip.id }}', {{ trip.status }})">
+                                            {% if trip.status == 0 %}Active{% else %}Deactive{% endif %}
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                <!-- <section id="companies" class="section">  
                     <h1><b style="color:white;">Scheduled Trip</b></h1><br>
                     <div class="dynamic-box" id="scheduled-trip">
                     </div>
-                </section>
-                <section id="companies" class="section">  
-                    <h1><b style="color:white;">Scheduled Trip</b></h1><br>
-                    <div class="dynamic-box" id="scheduled-trip">
-                    </div>
-                </section>
+                </section> -->
                 <section id="reports" class="section">
                     <h1><b style="color:white;">Scheduled Trip</b></h1><br>
                     <div class="dynamic-box" id="scheduled-trip">
@@ -319,6 +389,36 @@
             }
         });
     });
+
+    function toggleStatus(tripId, currentStatus) {
+    fetch(`/toggle_status/${tripId}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status: currentStatus })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const newStatus = currentStatus === 0 ? 1 : 0;
+            const message = newStatus === 0 ? 'Package Activated successfully' : 'Package Deactivated';
+            const icon = newStatus === 0 ? 'success' : 'warning';
+
+            Swal.fire({
+                icon: icon,
+                title: message
+            }).then(() => {
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error updating status'
+            });
+        }
+    });
+}
 </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {

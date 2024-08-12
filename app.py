@@ -813,10 +813,32 @@ def pack_manager():
 
             return redirect(url_for('pack_manager'))
 
-        return render_template('pack_manager.html')
+        # Fetch trips from the database
+        trips = db.child("trips").get().val()
+        if trips:
+            trips = [{**trip, 'id': trip_id} for trip_id, trip in trips.items()]
+        else:
+            trips = []
+
+        return render_template('pack_manager.html', trips=trips, enumerate=enumerate)
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
+
+#pack_status update
+@app.route('/toggle_status/<trip_id>', methods=['POST'])
+def toggle_status(trip_id):
+    if 'user' in session and session['user_id']:
+        try:
+            trip = db.child("trips").child(trip_id).get().val()
+            new_status = 1 if trip['status'] == 0 else 0
+            db.child("trips").child(trip_id).update({"status": new_status})
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)})
+    else:
+        return jsonify({"success": False, "error": "Unauthorized access"})
+    
 
 #admin_route
 @app.route('/admin')
