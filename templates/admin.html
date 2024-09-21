@@ -143,7 +143,7 @@
                                     </td>
                                     <td>
                                         {% if user.status < 4 %}
-                                        <button class="btn btn-danger" onclick="deactivateUser('{{ user.user_id }}', this)">Deactivate</button>
+                                        <button class="btn btn-danger" onclick="showDeactivateModal('{{ user.user_id }}', this)">Deactivate</button>
                                         {% else %}
                                         <button class="btn btn-secondary" disabled>Deactivated</button>
                                         {% endif %}
@@ -326,6 +326,26 @@
                     </div>
 
                 </section>
+                <!-- Deactivate User Modal -->
+                    <div class="modal fade" id="deactivateUserModal" tabindex="-1" aria-labelledby="deactivateUserModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="deactivateUserModalLabel">Deactivate User</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="deactivateUserForm">
+                                        <div class="mb-3">
+                                            <label for="reason" class="form-label">Reason for Deactivation</label>
+                                            <textarea class="form-control" id="reason" name="reason" rows="3" required></textarea>
+                                        </div>
+                                        <button type="submit" class="btn btn-danger">Deactivate User</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 <section id="reports" class="section">
                     <h1><b style="color:white;">Reports</b></h1><br>
                     <div class="dynamic-box" id="reports">
@@ -380,30 +400,39 @@
             }
         }
     
-        function deactivateUser(userId, button) {
-            $.post(`/deactivate_user/${userId}`, function(response) {
-                if (response.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Account Deactivated Successfully',
-                        confirmButtonText: 'OK'
-                    }).then(() => {
-                        button.innerText = 'Deactivated';
-                        button.classList.remove('btn-danger');
-                        button.classList.add('btn-secondary');
-                        button.disabled = true;
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: response.error,
-                        confirmButtonText: 'OK'
-                    });
-                }
-            });
+        function showDeactivateModal(userId, button) {
+            const modal = new bootstrap.Modal(document.getElementById('deactivateUserModal'));
+            modal.show();
+
+            document.getElementById('deactivateUserForm').onsubmit = function(event) {
+                event.preventDefault();
+                const reason = document.getElementById('reason').value;
+
+                $.post(`/deactivate_user/${userId}`, { reason: reason }, function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Account Deactivated Successfully',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            button.innerText = 'Deactivated';
+                            button.classList.remove('btn-danger');
+                            button.classList.add('btn-secondary');
+                            button.disabled = true;
+                            modal.hide();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: response.error,
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                });
+            };
         }
-    
+            
         function loadJsPDFAndGeneratePDF(elementId, reportTitle) {
             if (!window.jspdf) {
                 const script = document.createElement('script');

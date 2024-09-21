@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+    <h1>Complete your payment</h1>
+    <button id="rzp-button1">Pay Now</button>
+    <script>
+        var options = {
+            "key": "{{ key_id }}", // Enter the Key ID generated from the Dashboard
+            "amount": "{{ amount }}", // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+            "currency": "INR",
+            "name": "Trip With Me",
+            "description": "Booking Payment",
+            "image": "https://example.com/your_logo",
+            "order_id": "{{ order_id }}", // This is a sample Order ID. Pass the `id` obtained in the response of Step 1
+            "handler": function (response){
+                // Send the payment details to the server
+                fetch('/payment/success', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        'razorpay_payment_id': response.razorpay_payment_id,
+                        'razorpay_order_id': response.razorpay_order_id,
+                        'razorpay_signature': response.razorpay_signature,
+                        'booking_id': '{{ booking_id }}'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Payment successful!');
+                        window.location.href = "{{ url_for('index') }}";
+                    } else {
+                        alert('Payment failed: ' + data.message);
+                    }
+                });
+            },
+            "prefill": {
+                "name": "{{ session['user_name'] }}",
+                "email": "{{ session['user_email'] }}",
+                "contact": "{{ session['user_phone'] }}"
+            },
+            "theme": {
+                "color": "#3399cc"
+            }
+        };
+        var rzp1 = new Razorpay(options);
+        rzp1.on('payment.failed', function (response){
+            alert(response.error.code);
+            alert(response.error.description);
+            alert(response.error.source);
+            alert(response.error.step);
+            alert(response.error.reason);
+            alert(response.error.metadata.order_id);
+            alert(response.error.metadata.payment_id);
+        });
+        document.getElementById('rzp-button1').onclick = function(e){
+            rzp1.open();
+            e.preventDefault();
+        }
+    </script>
+</body>
+</html>

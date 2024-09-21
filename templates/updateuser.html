@@ -5,6 +5,7 @@
 
 
 <title>Account Info</title>
+<link rel="icon" href="static/images/aes11.png" type="image/icon type">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet">
 <style type="text/css">
@@ -173,8 +174,9 @@ font-size: 0.875em;
 <div class="row gx-3 mb-3"></div>
 
 <button class="btn btn-primary" name="submit" id="submit" type="submit">Save changes</button><br>
-<p align="center" style="color:#E0F320;"><a class="nav-link" id="foregetpassword" href="{{ url_for('password_reset_request') }}" style="color:#blue;margin-top:20px;">Update Password</a>
-<a class="nav-link" id="foregetpassword" href="{{ url_for('upgrade_account') }}" style="color:#blue;">Upgrade Account</a></p>
+<p align="center" style="color:#E0F320;"><a class="nav-link" id="foregetpassword" href="{{ url_for('password_reset_request') }}" style="color:blue;margin-top:20px;">Update Password</a>
+<a id="upgradeAccountLink" href="{{ url_for('upgrade_account') }}" class="nav-link" style="display: none;">Upgrade Account</a>
+<a id="updateCompanyDetailsLink" href="#" class="nav-link" data-bs-toggle="modal" data-bs-target="#companyDetailsModal" style="display: none;"></a>
 </form>
 </div>
 </div>
@@ -348,6 +350,16 @@ font-size: 0.875em;
                 });
             }
         });
+    });
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const userRole = {{role }}; // Assuming user_data is passed from Flask
+        if (userRole === 0) {
+            document.getElementById('upgradeAccountLink').style.display = 'block';
+        } else if (userRole === 1) {
+            document.getElementById('updateCompanyDetailsLink').style.display = 'block';
+        }
     });
 </script>
 </body>

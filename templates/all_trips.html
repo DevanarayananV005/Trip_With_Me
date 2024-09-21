@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Trips</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .trip-card {
+            flex: 0 0 calc(33.333% - 20px);
+            margin: 0 10px;
+            background-color: #1a1a1a;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .trip-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .trip-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .trip-details {
+            padding: 15px;
+        }
+
+        .trip-details h3 {
+            margin-top: 0;
+            color: #e0e0e0;
+        }
+
+        .trip-details p {
+            margin: 5px 0;
+            color: #b0b0b0;
+        }
+
+        .show-details-btn {
+            background-color: #009be3;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .show-details-btn:hover {
+            background-color: #007bb5;
+        }
+    </style>
+</head>
+<body style="background:black;color:white;font-family: 'Courier New', Courier, monospace;">
+    <nav class="navbar navbar-expand-lg sticky-top w-100" style="background:black;">
+        <div class="container-fluid">
+            <img src="/static/images/aes11.png" style="width:50px;height:50px;" alt="Brand Logo">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('scheduletrip') }}" target="__blank">Schedule Trip</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('findtrip') }}">Find Trip</a>
+                    </li>
+                    <li class="nav-item" style="margin-left: 248px;">
+                <form class="d-flex">
+                    <input align="center" class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput">
+                    <button class="btn btn-outline-success" type="submit">Search</button>
+                </form>
+                    </li>
+                    <li class="nav-item" style="margin-left: 452px;">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="fas fa-filter"></i> <!-- Assuming FontAwesome is used for icons -->
+                        </button>
+                    </li>
+                <li class="nav-item" style="margin-left: 20px;">
+                    <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-right: 0px;">
+                    <ul style="margin-left: 1350px;" class="dropdown-menu">
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}">LogOut</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('updateuser') }}">Account Info</a></li>
+                    </ul>
+                </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+<!-- Modal for filter -->
+<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="filterModalLabel">Filter Options</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="filterForm">
+                    <div class="mb-3">
+                        <label for="startDate" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="startDate" min="{{ min_start_date }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="endDate" class="form-label">End Date</label>
+                        <input type="date" class="form-control" id="endDate" min="{{ min_end_date }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="priceRange" class="form-label">Price Range</label>
+                        <input type="range" class="form-range" id="priceRange" min="1000" max="1000000" step="1000">
+                        <div class="d-flex justify-content-between">
+                            <span id="priceMin">1000</span>
+                            <span id="priceMax">1000000</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="applyFilters()">Apply Filters</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <div id="packages" class="container mt-3 section">
+        <h2>Packages</h2>
+        <div class="row" id="tripContainer">
+            <!-- Trip cards will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function redirectToDetails(tripId) {
+            if (isUserLoggedIn()) {
+                window.location.href = `/trip_details/${tripId}`;
+            } else {
+                window.location.href = '/login';
+            }
+        }
+
+        function isUserLoggedIn() {
+            return {{ 'true' if session.get('user') else 'false' }};
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            let trips = [];
+
+            fetch('/get_trips')
+            .then(response => response.json())
+            .then(data => {
+                trips = Object.values(data);
+                renderTrips(trips);
+            })
+            .catch(error => console.error('Error fetching trips:', error));
+
+            function renderTrips(tripsToRender) {
+                const tripContainer = document.getElementById('tripContainer');
+                tripContainer.innerHTML = '';
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                tomorrow.setHours(0, 0, 0, 0);
+
+                tripsToRender.forEach(trip => {
+                    const tripStartDate = new Date(trip.start_date);
+                    if (tripStartDate >= tomorrow) {
+                        const card = document.createElement('div');
+                        card.className = 'col-md-4 mb-4';
+                        card.innerHTML = `
+                            <div class="trip-card">
+                                <img src="/static/images/${trip.image1}" alt="${trip.location}">
+                                <div class="trip-details">
+                                    <h3>${trip.location}</h3>
+                                    <p>Total Amount: $${calculateTotalAmount(trip).toFixed(2)}</p>
+                                    <p>From: ${trip.start_date} <br>To: ${trip.end_date}</p>
+                                    <button class="show-details-btn" onclick="redirectToDetails('${trip.id}')">Show Details</button>
+                                </div>
+                            </div>
+                        `;
+                        tripContainer.appendChild(card);
+                    }
+                });
+            }
+
+            function calculateTotalAmount(trip) {
+                const basicAmount = parseFloat(trip.basic_amount);
+                const tax = (parseFloat(trip.tax_percentage) / 100) * basicAmount;
+                const discount = (parseFloat(trip.discount) / 100) * basicAmount;
+                return basicAmount + tax - discount;
+            }
+
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function() {
+                const searchQuery = searchInput.value.toLowerCase();
+                const filteredTrips = trips.filter(trip => trip.location.toLowerCase().includes(searchQuery));
+                renderTrips(filteredTrips.length ? filteredTrips : trips);
+            });
+        });
+    </script>
+<!-- script for filter -->
+<script>
+function calculateTotalAmount(trip) {
+    const basicAmount = parseFloat(trip.basic_amount);
+    const tax = (parseFloat(trip.tax_percentage) / 100) * basicAmount;
+    const discount = (parseFloat(trip.discount) / 100) * basicAmount;
+    return basicAmount + tax - discount;
+}
+
+function applyFilters() {
+    const startDate = document.getElementById('startDate').value;
+    const endDate = document.getElementById('endDate').value;
+    const priceRange = document.getElementById('priceRange').value;
+    const priceMin = 1000;
+    const priceMax = priceRange;
+
+    const filterOptions = {
+        start_date: startDate,
+        end_date: endDate,
+        price_min: priceMin,
+        price_max: priceMax
+    };
+
+    fetch('/search_trips', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            filter_options: filterOptions
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        renderTrips(data);
+    })
+    .catch(error => console.error('Error applying filters:', error));
+
+    $('#filterModal').modal('hide');
+}
+
+document.getElementById('priceRange').addEventListener('input', function() {
+    document.getElementById('priceMax').textContent = this.value;
+});
+</script>
+</body>
+</html>

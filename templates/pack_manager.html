@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Panel</title>
+    <title>Package Manager </title>
+    <link rel="icon" href="static/images/aes11.png" type="image/icon type">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='test_pack.css') }}">
@@ -48,9 +49,10 @@
             <img src="{{ url_for('static', filename='images/aes11.png') }}" alt="Company Logo" class="logo">
             <center><span style="margin-left: 402p"><b>PACKAGE MANAGER TERMINAL</b></span></center>
             <div class="user-menu">
-                <img src="{{ url_for('static', filename='images/user.png') }}" alt="User" class="user-image" onclick="toggleDropdown()">
+                <img src="{{ url_for('static', filename='images/' + user_image) }}" alt="User" class="user-image" onclick="toggleDropdown()">
                 <div class="dropdown-menu" id="dropdownMenu">
                     <a href="{{ url_for('logout') }}">Logout</a>
+                    <li><a href="{{ url_for('updateuser') }}">Account Info</a></li>
                 </div>
             </div>
         </nav>
@@ -58,84 +60,14 @@
             <nav class="sidebar" id="sidebar">
                 <button class="togglebtn" onclick="toggleSidebar()">☰</button>
                 <ul>
-                    <li><a href="#" onclick="showSection('add_pack')"><i class="fas fa-tachometer-alt"></i> <span class="nav-text">Dashboard</span></a></li>
+                    <li><a href="#" onclick="showSection('packages')"><i class="fas fa-calendar"></i> <span class="nav-text">Packages</span></a></li>
+                    <li><a href="#" onclick="showSection('add_pack')"><i class="fas fa-tachometer"></i> <span class="nav-text">Dashboard</span></a></li>
                     <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Bookings</span></a></li>
-                    <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Packages</span></a></li>
                     <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-line"></i> <span class="nav-text">Reports</span></a></li>
                 </ul>
             </nav>
             <div class="content" id="content">
-                <section id="add_pack" class="section active">
-                    <h1><b style="color:white;">Add Package</b></h1><br>
-                    <div class="dynamic-box" id="add_pack">
-                        <form id="tripForm" class="form-container" method="POST" action="{{ url_for('pack_manager') }}" enctype="multipart/form-data">
-                            <div class="form-group">
-                                <label for="location">Location</label>
-                                <select id="location" name="location" class="form-control" required>
-                                    <!-- Options will be populated by JavaScript -->
-                                </select>
-                                <div class="invalid-feedback">Location is required.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="startDate">Trip Start Date</label>
-                                <input type="date" id="startDate" name="startDate" class="form-control" required>
-                                <div class="invalid-feedback">Trip Start Date is required and must be after 5 days from today and within 2 years.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="endDate">Trip End Date</label>
-                                <input type="date" id="endDate" name="endDate" class="form-control" required>
-                                <div class="invalid-feedback">Trip End Date is required and must be after 2 days from the Trip Start Date and within 4 months.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="basicAmount">Basic Amount of the Trip</label>
-                                <input type="number" id="basicAmount" name="basicAmount" class="form-control" required>
-                                <div class="invalid-feedback">Basic Amount is required and must be a number with a maximum of 7 digits.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="taxPercentage">Percentage of Tax</label>
-                                <input type="number" id="taxPercentage" name="taxPercentage" class="form-control" required>
-                                <div class="invalid-feedback">Percentage of Tax is required and must be a number between 0 and 20.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="discount">Discount</label>
-                                <input type="number" id="discount" name="discount" class="form-control" step="0.01" max="100">
-                                <div class="invalid-feedback">Discount must be a number between 0 and 100.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="participants">Number of Participants</label>
-                                <input type="number" id="participants" name="participants" class="form-control" required>
-                                <div class="invalid-feedback">Number of Participants is required and must be a number with a maximum of 2 digits.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="description">Description and Requirements</label>
-                                <textarea id="description" name="description" class="form-control" required></textarea>
-                                <div class="invalid-feedback">Description and Requirements are required and must be between 50 and 700 letters.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="image1">Location Image 1</label>
-                                <input type="file" id="image1" name="image1" class="form-control" accept=".jpg, .jpeg, .png" required>
-                                <div class="invalid-feedback">Location Image 1 is required and must be a jpg, jpeg, or png file.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="image2">Location Image 2</label>
-                                <input type="file" id="image2" name="image2" class="form-control" accept=".jpg, .jpeg, .png" required>
-                                <div class="invalid-feedback">Location Image 2 is required and must be a jpg, jpeg, or png file.</div>
-                            </div>
-                            <div class="form-group">
-                                <label for="image3">Location Image 3</label>
-                                <input type="file" id="image3" name="image3" class="form-control" accept=".jpg, .jpeg, .png" required>
-                                <div class="invalid-feedback">Location Image 3 is required and must be a jpg, jpeg, or png file.</div>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Submit</button>
-                        </form>
-                    </div>
-                </section>
-                <section id="users" class="section">
-                    <h1><b style="color:white;">User Data</b></h1><br>
-                    <div class="dynamic-box" id="user-data">
-                    </div>
-                </section>
-                <section id="settings" class="section">  
+                <section id="packages" class="section active">  
                     <h1><b style="color:white;">Scheduled Packages</b></h1><br>
                     <div class="dynamic-box" id="scheduled-trip">
                         <table class="table table-borderless">
@@ -146,6 +78,7 @@
                                     <th>Start Date</th>
                                     <th>End Date</th>
                                     <th>See Details</th>
+                                    <th>Update</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -200,6 +133,68 @@
                                         </div>
                                     </td>
                                     <td>
+                                        <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#updateModal{{ idx }}" {% if trip.status != 0 %}disabled{% endif %}>
+                                            Update
+                                        </button>
+                                        <!-- Update Modal -->
+                                        <div class="modal fade" id="updateModal{{ idx }}" tabindex="-1" aria-labelledby="updateModalLabel{{ idx }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        
+                                                        <h5 class="modal-title" id="updateModalLabel{{ idx }}">Update Trip</h5>
+                                                    </div>
+                                                    <div class="modal-body" style="margin-top: -404px;">
+                                                        <form id="updateForm{{ idx }}" onsubmit="updateTrip(event, '{{ trip.id }}', {{ idx }})">
+                                                            <div class="form-group">
+                                                                <label for="updateLocation{{ idx }}">Location</label>
+                                                                <input type="text" class="form-control" id="updateLocation{{ idx }}" name="location" value="{{ trip.location }}" readonly>
+                                                                <div class="invalid-feedback">Location is required.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateStartDate{{ idx }}">Start Date</label>
+                                                                <input type="date" class="form-control" id="updateStartDate{{ idx }}" name="start_date" value="{{ trip.start_date }}" required>
+                                                                <div class="invalid-feedback">Start Date is required and must be after 5 days from today and within 2 years.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateEndDate{{ idx }}">End Date</label>
+                                                                <input type="date" class="form-control" id="updateEndDate{{ idx }}" name="end_date" value="{{ trip.end_date }}" required>
+                                                                <div class="invalid-feedback">End Date is required and must be after 2 days from the Start Date and within 4 months.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateBasicAmount{{ idx }}">Basic Amount</label>
+                                                                <input type="number" class="form-control" id="updateBasicAmount{{ idx }}" name="basic_amount" value="{{ trip.basic_amount }}" required>
+                                                                <div class="invalid-feedback">Basic Amount is required and must be a number with a maximum of 7 digits and should be greater than 100.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateTaxPercentage{{ idx }}">Tax Percentage</label>
+                                                                <input type="number" class="form-control" id="updateTaxPercentage{{ idx }}" name="tax_percentage" value="{{ trip.tax_percentage }}" required>
+                                                                <div class="invalid-feedback">Tax Percentage is required and must be a number between 0 and 20.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateDiscount{{ idx }}">Discount</label>
+                                                                <input type="number" class="form-control" id="updateDiscount{{ idx }}" name="discount" value="{{ trip.discount }}" required>
+                                                                <div class="invalid-feedback">Discount must be a number between 0 and 85.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateParticipants{{ idx }}">Participants</label>
+                                                                <input type="number" class="form-control" id="updateParticipants{{ idx }}" name="participants" value="{{ trip.participants }}" required>
+                                                                <div class="invalid-feedback">Number of Participants is required and must be a number with a maximum of 2 digits.</div>
+                                                            </div>
+                                                            <div class="form-group">
+                                                                <label for="updateDescription{{ idx }}">Description</label>
+                                                                <textarea class="form-control" id="updateDescription{{ idx }}" name="description" required>{{ trip.description }}</textarea>
+                                                                <div class="invalid-feedback">Description is required and must be between 50 and 700 characters.</div>
+                                                            </div>
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                            <button type="submit" class="btn btn-primary">Update</button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
                                         <button type="button" class="btn {% if trip.status == 0 %}btn-success{% else %}btn-danger{% endif %}" onclick="toggleStatus('{{ trip.id }}', {{ trip.status }})">
                                             {% if trip.status == 0 %}Active{% else %}Deactive{% endif %}
                                         </button>
@@ -210,6 +205,77 @@
                         </table>
                     </div>
                 </section>
+                <section id="add_pack" class="section">
+                    <h1><b style="color:white;">Add Package</b></h1><br>
+                    <div class="dynamic-box" id="add_pack">
+                        <form id="tripForm" class="form-container" method="POST" action="{{ url_for('pack_manager') }}" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="location">Location</label>
+                                <select id="location" name="location" class="form-control" required>
+                                    <!-- Options will be populated by JavaScript -->
+                                </select>
+                                <div class="invalid-feedback">Location is required.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="startDate">Trip Start Date</label>
+                                <input type="date" id="startDate" name="startDate" class="form-control" required>
+                                <div class="invalid-feedback">Trip Start Date is required and must be after 5 days from today and within 2 years.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="endDate">Trip End Date</label>
+                                <input type="date" id="endDate" name="endDate" class="form-control" required>
+                                <div class="invalid-feedback">Trip End Date is required and must be after 2 days from the Trip Start Date and within 4 months.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="basicAmount">Basic Amount of the Trip</label>
+                                <input type="number" id="basicAmount" name="basicAmount" class="form-control" required>
+                                <div class="invalid-feedback">Basic Amount is required and must be a number with a maximum of 7 digits and should be greater than 100.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="taxPercentage">Percentage of Tax</label>
+                                <input type="number" id="taxPercentage" name="taxPercentage" class="form-control" required>
+                                <div class="invalid-feedback">Percentage of Tax is required and must be a number between 0 and 20.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="discount">Discount</label>
+                                <input type="number" id="discount" name="discount" class="form-control" step="0.01" max="100">
+                                <div class="invalid-feedback">Discount must be a number between 0 and 85.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="participants">Number of Participants</label>
+                                <input type="number" id="participants" name="participants" class="form-control" required>
+                                <div class="invalid-feedback">Number of Participants is required and must be a number with a maximum of 2 digits.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="description">Description and Requirements</label>
+                                <textarea id="description" name="description" class="form-control" required></textarea>
+                                <div class="invalid-feedback">Description and Requirements are required and must be between 50 and 700 letters.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="image1">Location Image 1</label>
+                                <input type="file" id="image1" name="image1" class="form-control" accept=".jpg, .jpeg, .png" required>
+                                <div class="invalid-feedback">Location Image 1 is required and must be a jpg, jpeg, or png file.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="image2">Location Image 2</label>
+                                <input type="file" id="image2" name="image2" class="form-control" accept=".jpg, .jpeg, .png" required>
+                                <div class="invalid-feedback">Location Image 2 is required and must be a jpg, jpeg, or png file.</div>
+                            </div>
+                            <div class="form-group">
+                                <label for="image3">Location Image 3</label>
+                                <input type="file" id="image3" name="image3" class="form-control" accept=".jpg, .jpeg, .png" required>
+                                <div class="invalid-feedback">Location Image 3 is required and must be a jpg, jpeg, or png file.</div>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Submit</button>
+                        </form>
+                    </div>
+                </section>
+                <section id="users" class="section">
+                    <h1><b style="color:white;">User Data</b></h1><br>
+                    <div class="dynamic-box" id="user-data">
+                    </div>
+                </section>
+
                 <!-- <section id="companies" class="section">  
                     <h1><b style="color:white;">Scheduled Trip</b></h1><br>
                     <div class="dynamic-box" id="scheduled-trip">
@@ -224,202 +290,259 @@
         </div>
     </div>
     <script>
-     document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('tripForm');
-        const locationSelect = document.getElementById('location');
-        const startDateInput = document.getElementById('startDate');
-        const endDateInput = document.getElementById('endDate');
-        const basicAmountInput = document.getElementById('basicAmount');
-        const taxPercentageInput = document.getElementById('taxPercentage');
-        const discountInput = document.getElementById('discount');
-        const participantsInput = document.getElementById('participants');
-        const descriptionInput = document.getElementById('description');
-        const imageInputs = document.querySelectorAll('input[type="file"]');
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('tripForm');
+            const locationSelect = document.getElementById('location');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const basicAmountInput = document.getElementById('basicAmount');
+            const taxPercentageInput = document.getElementById('taxPercentage');
+            const discountInput = document.getElementById('discount');
+            const participantsInput = document.getElementById('participants');
+            const descriptionInput = document.getElementById('description');
+            const imageInputs = document.querySelectorAll('input[type="file"]');
+        
+            // Fetch locations from REST API
+            fetch('https://restcountries.com/v3.1/all')
+                .then(response => response.json())
+                .then(data => {
+                    // Sort countries alphabetically by common name
+                    const sortedCountries = data.sort((a, b) => {
+                        const nameA = a.name.common.toUpperCase();
+                        const nameB = b.name.common.toUpperCase();
+                        if (nameA < nameB) {
+                            return -1;
+                        }
+                        if (nameA > nameB) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+        
+                    // Append sorted countries to the select element
+                    sortedCountries.forEach(country => {
+                        const option = document.createElement('option');
+                        option.value = country.name.common;
+                        option.textContent = country.name.common;
+                        locationSelect.appendChild(option);
+                    });
+        
+                    // Add a default empty option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select a country';
+                    defaultOption.selected = true;
+                    defaultOption.disabled = true;
+                    locationSelect.insertBefore(defaultOption, locationSelect.firstChild);
+                });
+        
+            // Validation functions
+            function validateLocation() {
+                if (!locationSelect.value) {
+                    locationSelect.classList.add('is-invalid');
+                } else {
+                    locationSelect.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateStartDate() {
+                const startDate = new Date(startDateInput.value);
+                const today = new Date();
+                const minStartDate = new Date(today.setDate(today.getDate() + 5));
+                const maxStartDate = new Date(today.setFullYear(today.getFullYear() + 2));
+                if (startDate < minStartDate || startDate > maxStartDate) {
+                    startDateInput.classList.add('is-invalid');
+                } else {
+                    startDateInput.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateEndDate() {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                const minEndDate = new Date(startDate.setDate(startDate.getDate() + 2));
+                const maxEndDate = new Date(startDate.setMonth(startDate.getMonth() + 4));
+                if (endDate < minEndDate || endDate > maxEndDate) {
+                    endDateInput.classList.add('is-invalid');
+                } else {
+                    endDateInput.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateBasicAmount() {
+                if (!basicAmountInput.value || basicAmountInput.value.length > 7 || basicAmountInput.value < 100) {
+                    basicAmountInput.classList.add('is-invalid');
+                } else {
+                    basicAmountInput.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateTaxPercentage() {
+                const value = parseFloat(taxPercentageInput.value);
+                if (isNaN(value) || value < 0 || value > 20) {
+                    taxPercentageInput.classList.add('is-invalid');
+                } else {
+                    taxPercentageInput.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateDiscount() {
+                if (discountInput.value && (discountInput.value < 0 || discountInput.value > 85)) {
+                    discountInput.classList.add('is-invalid');
+                } else {
+                    discountInput.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateParticipants() {
+                if (!participantsInput.value || participantsInput.value.length > 2) {
+                    participantsInput.classList.add('is-invalid');
+                } else {
+                    participantsInput.classList.remove('is-invalid');
+                }
+            }
+        
+            function validateDescription() {
+                if (descriptionInput.value.length < 50 || descriptionInput.value.length > 700) {
+                    descriptionInput.classList.add('is-invalid');
+                } else {
+                    descriptionInput.classList.remove('is-invalid');
+                }
+            }
+            function areImagesSame(file1, file2) {
+                    return file1 && file2 && file1.name === file2.name && file1.size === file2.size && file1.type === file2.type;
+                }
+        
+            function validateImages() {
+                    const image1 = imageInputs[0].files[0];
+                    const image2 = imageInputs[1].files[0];
+                    const image3 = imageInputs[2].files[0];
 
-        // Fetch locations from REST API
-        fetch('https://restcountries.com/v3.1/all')
+                    imageInputs.forEach(input => {
+                        if (!input.value || !['image/jpeg', 'image/png'].includes(input.files[0].type)) {
+                            input.classList.add('is-invalid');
+                        } else {
+                            input.classList.remove('is-invalid');
+                        }
+                    });
+
+                    if (areImagesSame(image1, image2) || areImagesSame(image1, image3) || areImagesSame(image2, image3)) {
+                        imageInputs.forEach(input => {
+                            input.classList.add('is-invalid');
+                        });
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Images cannot be the same'
+                        });
+                    }
+                }
+            // Add keyup event listeners for validation
+            locationSelect.addEventListener('change', validateLocation);
+            startDateInput.addEventListener('keyup', validateStartDate);
+            endDateInput.addEventListener('keyup', validateEndDate);
+            basicAmountInput.addEventListener('keyup', validateBasicAmount);
+            taxPercentageInput.addEventListener('keyup', validateTaxPercentage);
+            discountInput.addEventListener('keyup', validateDiscount);
+            participantsInput.addEventListener('keyup', validateParticipants);
+            descriptionInput.addEventListener('keyup', validateDescription);
+            imageInputs.forEach(input => input.addEventListener('change', validateImages));
+        
+            // Set default value for discount
+            discountInput.addEventListener('blur', function() {
+                if (!discountInput.value) {
+                    discountInput.value = 0;
+                }
+            });
+        
+            // Form submission validation
+            form.addEventListener('submit', function(event) {
+                validateLocation();
+                validateStartDate();
+                validateEndDate();
+                validateBasicAmount();
+                validateTaxPercentage();
+                validateDiscount();
+                validateParticipants();
+                validateDescription();
+                validateImages();
+        
+                if (form.querySelectorAll('.is-invalid').length > 0) {
+                    event.preventDefault();
+                }
+            });
+        });
+        
+        function toggleStatus(tripId, currentStatus) {
+            fetch(`/toggle_status/${tripId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: currentStatus })
+            })
             .then(response => response.json())
             .then(data => {
-                // Sort countries alphabetically by common name
-                const sortedCountries = data.sort((a, b) => {
-                    const nameA = a.name.common.toUpperCase();
-                    const nameB = b.name.common.toUpperCase();
-                    if (nameA < nameB) {
-                        return -1;
-                    }
-                    if (nameA > nameB) {
-                        return 1;
-                    }
-                    return 0;
-                });
-
-                // Append sorted countries to the select element
-                sortedCountries.forEach(country => {
-                    const option = document.createElement('option');
-                    option.value = country.name.common;
-                    option.textContent = country.name.common;
-                    locationSelect.appendChild(option);
-                });
-
-                // Add a default empty option
-                const defaultOption = document.createElement('option');
-                defaultOption.value = '';
-                defaultOption.textContent = 'Select a country';
-                defaultOption.selected = true;
-                defaultOption.disabled = true;
-                locationSelect.insertBefore(defaultOption, locationSelect.firstChild);
-            });
-
-        // Validation functions
-        function validateLocation() {
-            if (!locationSelect.value) {
-                locationSelect.classList.add('is-invalid');
-            } else {
-                locationSelect.classList.remove('is-invalid');
-            }
-        }
-
-        function validateStartDate() {
-            const startDate = new Date(startDateInput.value);
-            const today = new Date();
-            const minStartDate = new Date(today.setDate(today.getDate() + 5));
-            const maxStartDate = new Date(today.setFullYear(today.getFullYear() + 2));
-            if (startDate < minStartDate || startDate > maxStartDate) {
-                startDateInput.classList.add('is-invalid');
-            } else {
-                startDateInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateEndDate() {
-            const startDate = new Date(startDateInput.value);
-            const endDate = new Date(endDateInput.value);
-            const minEndDate = new Date(startDate.setDate(startDate.getDate() + 2));
-            const maxEndDate = new Date(startDate.setMonth(startDate.getMonth() + 4));
-            if (endDate < minEndDate || endDate > maxEndDate) {
-                endDateInput.classList.add('is-invalid');
-            } else {
-                endDateInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateBasicAmount() {
-            if (!basicAmountInput.value || basicAmountInput.value.length > 7) {
-                basicAmountInput.classList.add('is-invalid');
-            } else {
-                basicAmountInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateTaxPercentage() {
-            const value = parseFloat(taxPercentageInput.value);
-            if (isNaN(value) || value < 0 || value > 20) {
-                taxPercentageInput.classList.add('is-invalid');
-            } else {
-                taxPercentageInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateDiscount() {
-            if (discountInput.value && (discountInput.value < 0 || discountInput.value > 100)) {
-                discountInput.classList.add('is-invalid');
-            } else {
-                discountInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateParticipants() {
-            if (!participantsInput.value || participantsInput.value.length > 2) {
-                participantsInput.classList.add('is-invalid');
-            } else {
-                participantsInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateDescription() {
-            if (descriptionInput.value.length < 50 || descriptionInput.value.length > 700) {
-                descriptionInput.classList.add('is-invalid');
-            } else {
-                descriptionInput.classList.remove('is-invalid');
-            }
-        }
-
-        function validateImages() {
-            imageInputs.forEach(input => {
-                if (!input.value || !['image/jpeg', 'image/png'].includes(input.files[0].type)) {
-                    input.classList.add('is-invalid');
+                if (data.success) {
+                    const newStatus = currentStatus === 0 ? 1 : 0;
+                    const message = newStatus === 0 ? 'Package Activated successfully' : 'Package Deactivated';
+                    const icon = newStatus === 0 ? 'success' : 'warning';
+        
+                    Swal.fire({
+                        icon: icon,
+                        title: message
+                    }).then(() => {
+                        location.reload();
+                    });
                 } else {
-                    input.classList.remove('is-invalid');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating status'
+                    });
                 }
             });
         }
-
-        // Add keyup event listeners for validation
-        locationSelect.addEventListener('change', validateLocation);
-        startDateInput.addEventListener('keyup', validateStartDate);
-        endDateInput.addEventListener('keyup', validateEndDate);
-        basicAmountInput.addEventListener('keyup', validateBasicAmount);
-        taxPercentageInput.addEventListener('keyup', validateTaxPercentage);
-        discountInput.addEventListener('keyup', validateDiscount);
-        participantsInput.addEventListener('keyup', validateParticipants);
-        descriptionInput.addEventListener('keyup', validateDescription);
-        imageInputs.forEach(input => input.addEventListener('change', validateImages));
-
-        // Set default value for discount
-        discountInput.addEventListener('blur', function() {
-            if (!discountInput.value) {
-                discountInput.value = 0;
-            }
-        });
-
-        // Form submission validation
-        form.addEventListener('submit', function(event) {
-            validateLocation();
-            validateStartDate();
-            validateEndDate();
-            validateBasicAmount();
-            validateTaxPercentage();
-            validateDiscount();
-            validateParticipants();
-            validateDescription();
-            validateImages();
-
-            if (form.querySelectorAll('.is-invalid').length > 0) {
-                event.preventDefault();
-            }
-        });
-    });
-
-    function toggleStatus(tripId, currentStatus) {
-    fetch(`/toggle_status/${tripId}`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ status: currentStatus })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            const newStatus = currentStatus === 0 ? 1 : 0;
-            const message = newStatus === 0 ? 'Package Activated successfully' : 'Package Deactivated';
-            const icon = newStatus === 0 ? 'success' : 'warning';
-
-            Swal.fire({
-                icon: icon,
-                title: message
-            }).then(() => {
-                location.reload();
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error updating status'
+        
+        function updateTrip(event, tripId, idx) {
+            event.preventDefault();
+            const form = document.getElementById(`updateForm${idx}`);
+            const formData = new FormData(form);
+        
+            const tripData = {
+                location: formData.get('location'),
+                start_date: formData.get('start_date'),
+                end_date: formData.get('end_date'),
+                basic_amount: formData.get('basic_amount'),
+                tax_percentage: formData.get('tax_percentage'),
+                discount: formData.get('discount'),
+                participants: formData.get('participants'),
+                description: formData.get('description')
+            };
+        
+            fetch(`/update_trip/${tripId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(tripData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Package updated successfully'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating package'
+                    });
+                }
             });
         }
-    });
-}
-</script>
+        </script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM fully loaded and parsed');
@@ -436,6 +559,127 @@
         {% endif %}
         {% endwith %}
     });
+    </script>
+    <!-- script for validation for update -->
+    <script>
+        function validateUpdateForm(idx) {
+            const form = document.getElementById(`updateForm${idx}`);
+            const locationInput = form.querySelector(`#updateLocation${idx}`);
+            const startDateInput = form.querySelector(`#updateStartDate${idx}`);
+            const endDateInput = form.querySelector(`#updateEndDate${idx}`);
+            const basicAmountInput = form.querySelector(`#updateBasicAmount${idx}`);
+            const taxPercentageInput = form.querySelector(`#updateTaxPercentage${idx}`);
+            const discountInput = form.querySelector(`#updateDiscount${idx}`);
+            const participantsInput = form.querySelector(`#updateParticipants${idx}`);
+            const descriptionInput = form.querySelector(`#updateDescription${idx}`);
+
+            function validateLocation() {
+                if (!locationInput.value) {
+                    locationInput.classList.add('is-invalid');
+                } else {
+                    locationInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateStartDate() {
+                const startDate = new Date(startDateInput.value);
+                const today = new Date();
+                const minStartDate = new Date(today.setDate(today.getDate() + 5));
+                const maxStartDate = new Date(today.setFullYear(today.getFullYear() + 2));
+                if (startDate < minStartDate || startDate > maxStartDate) {
+                    startDateInput.classList.add('is-invalid');
+                } else {
+                    startDateInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateEndDate() {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                const minEndDate = new Date(startDate.setDate(startDate.getDate() + 2));
+                const maxEndDate = new Date(startDate.setMonth(startDate.getMonth() + 4));
+                if (endDate < minEndDate || endDate > maxEndDate) {
+                    endDateInput.classList.add('is-invalid');
+                } else {
+                    endDateInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateBasicAmount() {
+                if (!basicAmountInput.value || basicAmountInput.value.length > 7 || basicAmountInput.value < 100) {
+                    basicAmountInput.classList.add('is-invalid');
+                } else {
+                    basicAmountInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateTaxPercentage() {
+                const value = parseFloat(taxPercentageInput.value);
+                if (isNaN(value) || value < 0 || value > 20) {
+                    taxPercentageInput.classList.add('is-invalid');
+                } else {
+                    taxPercentageInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateDiscount() {
+                if (discountInput.value && (discountInput.value < 0 || discountInput.value > 85)) {
+                    discountInput.classList.add('is-invalid');
+                } else {
+                    discountInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateParticipants() {
+                if (!participantsInput.value || participantsInput.value.length > 2) {
+                    participantsInput.classList.add('is-invalid');
+                } else {
+                    participantsInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateDescription() {
+                if (descriptionInput.value.length < 50 || descriptionInput.value.length > 700) {
+                    descriptionInput.classList.add('is-invalid');
+                } else {
+                    descriptionInput.classList.remove('is-invalid');
+                }
+            }
+
+            // Add event listeners
+            locationInput.addEventListener('change', validateLocation);
+            startDateInput.addEventListener('change', validateStartDate);
+            endDateInput.addEventListener('change', validateEndDate);
+            basicAmountInput.addEventListener('change', validateBasicAmount);
+            taxPercentageInput.addEventListener('change', validateTaxPercentage);
+            discountInput.addEventListener('change', validateDiscount);
+            participantsInput.addEventListener('change', validateParticipants);
+            descriptionInput.addEventListener('change', validateDescription);
+
+            // Form submission validation
+            form.addEventListener('submit', function(event) {
+                validateLocation();
+                validateStartDate();
+                validateEndDate();
+                validateBasicAmount();
+                validateTaxPercentage();
+                validateDiscount();
+                validateParticipants();
+                validateDescription();
+
+                if (form.querySelectorAll('.is-invalid').length > 0) {
+                    event.preventDefault();
+                }
+            });
+        }
+
+        // Initialize validation for each update form
+        document.addEventListener('DOMContentLoaded', function() {
+            const updateForms = document.querySelectorAll('.modal-body form');
+            updateForms.forEach((form, idx) => {
+                validateUpdateForm(idx);
+            });
+        });
     </script>
 </body>
 </html>
