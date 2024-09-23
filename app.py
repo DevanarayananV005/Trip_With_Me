@@ -14,6 +14,14 @@ import string
 import cv2
 import numpy as np
 from flask import Response
+from datetime import datetime, timedelta
+import itertools
+import random
+from jinja2 import Environment, FileSystemLoader
+import math
+import stripe
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 app = Flask(__name__)
 
@@ -29,18 +37,19 @@ if not firebase_admin._apps:
     })
 
 bucket = storage.bucket()  # Access the bucket
-db = firestore.client()    # Access Firestore
+db = firestore.client()  
+db_firestore = firestore.client()   # Access Firestore
 
 # Firebase configuration for Pyrebase
 config = {
-    "apiKey": "#",
-    "authDomain": "#",
-    "projectId": "#",
-    "storageBucket": "#",
-    "messagingSenderId": "#",
-    "appId": "#",
-    "measurementId": "W",
-    "databaseURL": "#"
+    "apiKey": "AIzaSyBR1xj4iWIRS1YuD_5Cwta7QN00-1UtLN4",
+    "authDomain": "tripwithme-db6792.firebaseapp.com",
+    "projectId": "tripwithme-db6792",
+    "storageBucket": "tripwithme-db6792.appspot.com",
+    "messagingSenderId": "567401440169",
+    "appId": "1:567401440169:web:96885bb3f0859cbff09ab8",
+    "measurementId": "G-WLDG1QFZH3",
+    "databaseURL": "https://tripwithme-db6792-default-rtdb.firebaseio.com/"
 }
 
 # Initialize Firebase with Pyrebase
@@ -48,11 +57,14 @@ firebase = pyrebase.initialize_app(config)
 auth = firebase.auth()
 db = firebase.database()
 
+#razorpay secret key
+stripe.api_key = 'sk_test_51OCqKJSDxrkb8ke1nAyVrBC0a8GHM73ixdczaY1acuJs23nGxr0eamRSLHTBxb2O6UeM8LU9vsiUHpKD67R8BwxN00VoItYGe6'
+
 # SMTP email configuration
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
-SMTP_USERNAME = '#'
-SMTP_PASSWORD = '#'
+SMTP_USERNAME = 'devanarayananv2025@mca.ajce.in'
+SMTP_PASSWORD = 'Appu#7692'
 
 def send_otp_email(to_email, otp):
     subject = 'OTP code for Registration'
@@ -76,10 +88,13 @@ def send_otp_email(to_email, otp):
     except Exception as e:
         print(f'Error sending email: {str(e)}')
 
+#enumerate filter
 @app.template_filter('enumerate')
-def do_enumerate(iterable, start=0):
-    return enumerate(iterable, start=start)
+def jinja2_enumerate(iterable, start=0):
+    return enumerate(iterable, start)
 
+
+app.jinja_env.filters['enumerate'] = jinja2_enumerate
 
 @app.route('/')
 def index():
@@ -100,7 +115,6 @@ def index():
 def base():
     user_logged_in = 'user' in session
     return render_template('base.html', user_logged_in=user_logged_in)
-
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -298,6 +312,7 @@ def updateuser():
 
             email = user_data.get('email', '')
             name = user_data.get('name', '')
+            role = user_data.get('role', '')
             pincode = pers_det.get('pin', '')
             state = pers_det.get('state', '')
             district = pers_det.get('district', '')
@@ -315,7 +330,8 @@ def updateuser():
                 housename=housename,
                 phone=phone,
                 dob=dob,
-                image_name=image_name
+                image_name=image_name,
+                role=role
             )
         except Exception as e:
             flash(f'Error fetching user details: {str(e)}', 'danger')
@@ -405,6 +421,8 @@ def scheduletrip():
         return redirect(url_for('login'))
 
 
+from datetime import datetime
+
 @app.route('/findtrip')
 def findtrip():
     if 'user' in session:
@@ -419,10 +437,12 @@ def findtrip():
                 print("No schedule trips found.")
             else:
                 trips_data = []
+                today = datetime.now().date()
                 for key, trip in scheduletrips.items():
-                    # Check if tripstatus is 0
-                    if trip.get('tripstatus') != 0:
-                        continue  # Skip this trip if tripstatus is not 0
+                    # Check if tripstatus is 0 and tripdate is after today
+                    tripdate = datetime.strptime(trip.get('tripdate'), '%Y-%m-%d').date()
+                    if trip.get('tripstatus') != 0 or tripdate <= today:
+                        continue  # Skip this trip if tripstatus is not 0 or tripdate is not after today
 
                     user_id = trip.get('user_id')
                     print(f"Processing trip for user_id: {user_id}")
@@ -443,7 +463,6 @@ def findtrip():
 
                     # Calculate age from dob
                     dob = pers_data.get('dob')
-                    from datetime import datetime
                     dob_date = datetime.strptime(dob, '%Y-%m-%d')
                     age = (datetime.now() - dob_date).days // 365
 
@@ -610,6 +629,8 @@ def notifications():
                             'budget': trip_data.get('budget'),
                             'request_id': request_id,
                             'scheduletrip_id': scheduletrip_id,
+                            'sender_id': sender_id,
+                            'receiver_id': user_id, 
                             'request_status': request_data.get('request_status'),
                             'tripstatus': trip_data.get('tripstatus')
                         }
@@ -649,7 +670,8 @@ def notifications():
         logged_in_user_data = db.child("per_det").child(user_id).get().val()
         user_image = logged_in_user_data.get('image', 'default_image.jpg')  # Use a default image if not found
 
-        return render_template('notifications.html', notifications=notifications, user_image=user_image)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        return render_template('notifications.html', notifications=notifications, user_image=user_image, current_date=current_date)
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
@@ -755,14 +777,53 @@ def verify_otp_page():
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
+
+@app.route('/submit_review', methods=['POST'])
+def submit_review():
+    if 'user' in session:
+        reviewer_id = session['user_id']
+        reviewee_id = request.form.get('reviewee_id')
+        review = request.form.get('review')
+        review_date = datetime.now().strftime("%Y-%m-%d")
+        review_time = datetime.now().strftime("%H:%M:%S")
+
+        try:
+            # Check if a review already exists
+            existing_reviews = db.child("reviews").get().val()
+            if existing_reviews:
+                for review_id, review_data in existing_reviews.items():
+                    if review_data['reviewer_id'] == reviewer_id and review_data['reviewee_id'] == reviewee_id:
+                        return jsonify({'success': False, 'message': 'Review already provided'})
+
+            # If no existing review, submit the new review
+            db.child("reviews").push({
+                'reviewer_id': reviewer_id,
+                'reviewee_id': reviewee_id,
+                'review': review,
+                'review_date': review_date,
+                'review_time': review_time
+            })
+            return jsonify({'success': True})
+        except Exception as e:
+            print(f"Error submitting review: {str(e)}")
+            return jsonify({'success': False, 'message': 'An error occurred'})
+    else:
+        return jsonify({'success': False, 'message': 'User not logged in'})
     
 
 #add package
 @app.route('/pack_manager', methods=['GET', 'POST'])
 def pack_manager():
     if 'user' in session and session['user_id']:
+        user_id = session['user_id']
+        user_image = db.child("per_det").child(user_id).child("image").get().val()
+        if not user_image:
+            user_image = 'default_image.jpg' 
+        package_manager_data = db.child("package_manager").child(user_id).get().val()
+        c_name = package_manager_data.get('c_name', 'PACKAGE MANAGER TERMINAL') if package_manager_data else 'PACKAGE MANAGER TERMINAL' # Default image if not found
+
+        
         if request.method == 'POST':
-            user_id = session['user_id']
             location = request.form['location']
             start_date = request.form['startDate']
             end_date = request.form['endDate']
@@ -797,7 +858,8 @@ def pack_manager():
                 "image1": image1_filename,
                 "image2": image2_filename,
                 "image3": image3_filename,
-                "status": 0
+                "status": 0,
+                "bookings": 0
             }
 
             # Debug print to verify data
@@ -816,14 +878,48 @@ def pack_manager():
         # Fetch trips from the database
         trips = db.child("trips").get().val()
         if trips:
-            trips = [{**trip, 'id': trip_id} for trip_id, trip in trips.items()]
+            trips = [{**trip, 'id': trip_id} for trip_id, trip in trips.items() if trip.get('user_id') == user_id]
         else:
             trips = []
 
-        return render_template('pack_manager.html', trips=trips, enumerate=enumerate)
+        return render_template('pack_manager.html', trips=trips, user_image=user_image, enumerate=enumerate, c_name=c_name)
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
+
+#package manager booking display
+@app.route('/get_locations')
+def get_locations():
+    user_id = request.args.get('user_id')
+    trips = db.child("trips").order_by_child("user_id").equal_to(user_id).get().val()
+    locations = []
+    if trips:
+        for trip_id, trip in trips.items():
+            locations.append({
+                'trip_id': trip_id,
+                'location': trip['location']
+            })
+    return jsonify(locations)
+
+@app.route('/get_bookings')
+def get_bookings():
+    trip_id = request.args.get('trip_id')
+    bookings = db.child("bookings").order_by_child("trip_id").equal_to(trip_id).get().val()
+    bookings_list = []
+    if bookings:
+        for booking_id, booking in bookings.items():
+            user_id = booking['user_id']
+            user = db.child("users").child(user_id).get().val()
+            per_det = db.child("per_det").child(user_id).get().val()
+            bookings_list.append({
+                'name': user['name'],
+                'email': user['email'],
+                'phone': per_det['phone'],
+                'booking_date': booking['booking_date'],
+                'booking_time': booking['booking_time'],
+                'status': booking['status'],
+            })
+    return jsonify(bookings_list)
 
 #pack_status update
 @app.route('/toggle_status/<trip_id>', methods=['POST'])
@@ -838,7 +934,20 @@ def toggle_status(trip_id):
             return jsonify({"success": False, "error": str(e)})
     else:
         return jsonify({"success": False, "error": "Unauthorized access"})
-    
+
+#pack_data update
+@app.route('/update_trip/<trip_id>', methods=['POST'])
+def update_trip(trip_id):
+    if 'user' in session and session['user_id']:
+        try:
+            trip_data = request.json
+            db.child("trips").child(trip_id).update(trip_data)
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)})
+    else:
+        return jsonify({"success": False, "error": "Unauthorized access"})
+
 
 #admin_route
 @app.route('/admin')
@@ -970,14 +1079,46 @@ def admin():
 @app.route('/deactivate_user/<user_id>', methods=['POST'])
 def deactivate_user(user_id):
     if 'user_id' in session and session['user_id'] == 'admin':
+        reason = request.form.get('reason')
         try:
             # Update the user's status to 4 (deactivated)
             db.child("users").child(user_id).update({"status": 4})
+
+            # Store the reason in the database
+            db.child("users").child(user_id).update({"deactivation_reason": reason})
+
+            # Send an email to the user with the reason
+            user_data = db.child("users").child(user_id).get().val()
+            if user_data:
+                user_email = user_data.get('email')
+                if user_email:
+                    subject = 'Account Deactivated'
+                    body = f'Your account has been deactivated. Reason: {reason}'
+                    send_email(user_email, subject, body)
+
             return jsonify({"success": True})
         except Exception as e:
             return jsonify({"success": False, "error": str(e)})
     else:
         return jsonify({"success": False, "error": "Unauthorized access"})
+def send_email(to_email, subject, body):
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USERNAME
+    msg['To'] = to_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(SMTP_USERNAME, to_email, text)
+        server.quit()
+        print(f'Email sent to {to_email}')
+    except Exception as e:
+        print(f'Error sending email: {str(e)}')
 
 @app.route('/get_user_details/<user_id>', methods=['GET'])
 def get_user_details(user_id):
@@ -1036,6 +1177,295 @@ def send_approval_email(to_email):
         print(f'Email sent to {to_email}')
     except Exception as e:
         print(f'Error sending email: {str(e)}')
+
+#all_trips page
+@app.route('/all_trips')
+def all_trips():
+    if 'user' in session:
+        user_id = session['user_id']
+        user_image = db.child("per_det").child(user_id).child("image").get().val()
+        if not user_image:
+            user_image = 'default_image.jpg'  # Default image if not found
+        return render_template('all_trips.html', user_image=user_image)
+    else:
+        flash('User not logged in.', 'danger')
+        return redirect(url_for('login'))
+
+
+#trip search and filter
+@app.route('/search_trips', methods=['POST'])
+def search_trips():
+    if 'user' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+    
+    search_query = request.json.get('search_query', '')
+    filter_options = request.json.get('filter_options', {})
+    
+    # Fetch all trips
+    trips = db.child("trips").get().val()
+    if not trips:
+        return jsonify([])
+    
+    # Convert trips to a list of dictionaries
+    trips_list = [{**trip, 'id': trip_id} for trip_id, trip in trips.items()]
+    
+    # Apply search query
+    if search_query:
+        trips_list = [trip for trip in trips_list if search_query.lower() in trip['location'].lower()]
+    
+    # Apply filter options
+    if filter_options:
+        if 'start_date' in filter_options:
+            trips_list = [trip for trip in trips_list if trip['start_date'] >= filter_options['start_date']]
+        if 'end_date' in filter_options:
+            trips_list = [trip for trip in trips_list if trip['end_date'] <= filter_options['end_date']]
+        if 'price_min' in filter_options and 'price_max' in filter_options:
+            trips_list = [trip for trip in trips_list if filter_options['price_min'] <= float(trip['basic_amount']) <= filter_options['price_max']]
+    
+    return jsonify(trips_list)
+
+# Additional route to get min_start_date and min_end_date
+@app.route('/get_min_dates', methods=['GET'])
+def get_min_dates():
+    min_start_date = (datetime.now() + timedelta(days=1)).strftime('%Y-%m-%d')
+    min_end_date = (datetime.now() + timedelta(days=4)).strftime('%Y-%m-%d')
+    return jsonify({
+        'min_start_date': min_start_date,
+        'min_end_date': min_end_date
+    })
+
+#packages
+@app.route('/get_trips')
+def get_trips():
+    trips = db.child("trips").get().val()
+    if trips:
+        available_trips = {}
+        for key, trip in trips.items():
+            bookings = trip.get('bookings', 0)
+            participants = int(trip.get('participants', 0))
+            if bookings < participants:
+                available_trips[key] = {**trip, 'id': key}
+        return jsonify(available_trips)
+    else:
+        return jsonify({})
+
+@app.route('/trip_details/<trip_id>')
+def trip_details(trip_id):
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    # Fetch the trip details
+    trip = db.child("trips").child(trip_id).get().val()
+    if not trip:
+        return "Trip not found", 404
+    
+    # Fetch the specific package manager details using the user_id from the trip
+    package_manager = db.child("package_manager").child(trip['user_id']).get().val()
+    
+    # Fetch the user_image for the logged-in user
+    user_id = session['user_id']
+    user_image = db.child("per_det").child(user_id).child("image").get().val()
+    if not user_image:
+        user_image = 'default_image.jpg'  # Default image if not found
+    
+    return render_template('trip_details.html', trip=trip, package_manager=package_manager, user_image=user_image, trip_id=trip_id)
+
+@app.route('/create_booking', methods=['POST'])
+def create_booking():
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'User not logged in'})
+
+    booking_data = request.form.to_dict()
+    user_id = booking_data.get('user_id')
+    trip_id = booking_data.get('trip_id')
+
+    if not user_id or not trip_id:
+        return jsonify({'success': False, 'message': 'Missing user_id or trip_id'})
+
+    try:
+        # Check if booking already exists
+        existing_bookings = db.child("bookings").get().val()
+        if existing_bookings:
+            for booking_id, booking in existing_bookings.items():
+                if booking['user_id'] == user_id and booking['trip_id'] == trip_id:
+                    return jsonify({'success': False, 'message': 'Booking already exists'})
+
+        # Get current date and time
+        now = datetime.now()
+        booking_data['booking_date'] = now.strftime("%Y-%m-%d")
+        booking_data['booking_time'] = now.strftime("%H:%M:%S")
+        booking_data['status'] = 0
+
+        new_booking = db.child("bookings").push(booking_data)
+        booking_id = new_booking['name']  # This is the unique ID generated by Firebase
+        print(f"New booking created with ID: {booking_id}")  # Log the new booking ID
+        
+        return jsonify({'success': True, 'booking_id': booking_id})
+    except Exception as e:
+        print(f"Error creating booking: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to create booking'})
+    
+#payment gateway
+@app.route('/payment/<booking_id>')
+def payment(booking_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    return render_template('payment.html', booking_id=booking_id, user_id=session['user_id'])
+
+@app.route('/create-checkout-session', methods=['POST'])
+def create_checkout_session():
+    try:
+        booking_id = request.form['booking_id']
+        user_id = request.form['user_id']
+
+        # Fetch booking details from Realtime Database
+        booking = db.child("bookings").child(booking_id).get().val()
+        if not booking:
+            return jsonify({"error": "Booking not found"}), 404
+
+        # Fetch trip details
+        trip = db.child("trips").child(booking['trip_id']).get().val()
+        if not trip:
+            return jsonify({"error": "Trip not found"}), 404
+
+        # Fetch user details (assuming you have a 'users' node in your database)
+        user = db.child("users").child(user_id).get().val()
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Calculate the amount
+        amount = int(float(trip['basic_amount']) * 100)  # Convert to cents
+
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'inr',
+                    'unit_amount': amount,
+                    'product_data': {
+                        'name': f"Booking for {trip['location']}",
+                    },
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('payment_success', booking_id=booking_id, _external=True),
+            cancel_url=url_for('payment_cancel', booking_id=booking_id, _external=True),
+            customer_email=user.get('email'),
+            billing_address_collection='required',
+            metadata={
+                'booking_id': booking_id,
+                'trip_id': booking['trip_id']
+            }
+        )
+        return jsonify({"session_id": checkout_session.id})
+    except stripe.error.StripeError as e:
+        app.logger.error(f"Stripe error: {str(e)}")
+        return jsonify({"error": str(e)}), 403
+    except Exception as e:
+        app.logger.error(f"An error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/payment_success/<booking_id>')
+def payment_success(booking_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    current_time = datetime.now()
+
+    try:
+        # Update the booking status
+        db.child("bookings").child(booking_id).update({"status": 1})
+        
+        # Create a new payment entry
+        payment_data = {
+            "user_id": user_id,
+            "booking_id": booking_id,
+            "payment_date": current_time.strftime("%Y-%m-%d"),
+            "payment_time": current_time.strftime("%H:%M:%S")
+        }
+        db.child("payments").push(payment_data)
+
+        # Fetch the booking details to get the trip_id
+        booking = db.child("bookings").child(booking_id).get().val()
+        if booking:
+            trip_id = booking.get('trip_id')
+            if trip_id:
+                # Fetch the current bookings count for the trip
+                trip = db.child("trips").child(trip_id).get().val()
+                if trip:
+                    current_bookings = trip.get('bookings', 0)
+                    # Increment the bookings count
+                    db.child("trips").child(trip_id).update({"bookings": current_bookings + 1})
+
+                    # Fetch user details
+                    user = db.child("users").child(user_id).get().val()
+                    user_email = user.get('email')
+
+                    # Fetch trip details
+                    trip_location = trip.get('location')
+                    trip_start_date = trip.get('start_date')
+                    trip_end_date = trip.get('end_date')
+                    trip_basic_amount = float(trip.get('basic_amount', 0))
+                    trip_tax_percentage = float(trip.get('tax_percentage', 0))
+                    trip_discount = float(trip.get('discount', 0))
+
+                    # Calculate total amount
+                    total_amount = (trip_basic_amount + (trip_basic_amount * trip_tax_percentage / 100)) - (trip_basic_amount * trip_discount / 100)
+
+                    # Fetch package manager details
+                    package_manager_user_id = trip.get('user_id')
+                    package_manager = db.child("package_manager").child(package_manager_user_id).get().val()
+                    package_manager_name = package_manager.get('c_name')
+                    package_manager_email = package_manager.get('c_email')
+                    package_manager_phone = package_manager.get('c_phone')
+
+                    # Send confirmation email
+                    subject = 'Booking Confirmation'
+                    body = f"""
+                    Thank You for booking the tour package to {trip_location} on {trip_start_date} to {trip_end_date} at a rate of {total_amount}.
+                    The company details for contact is given below:
+                    Company: {package_manager_name}
+                    Email: {package_manager_email}
+                    Phone: {package_manager_phone}
+                    """
+                    snd_email(user_email, subject, body)
+
+        flash('Payment successful!', 'success')
+    except Exception as e:
+        app.logger.error(f"Error in payment_success: {str(e)}")
+        flash('There was an error processing your payment. Please contact support.', 'danger')
+
+    return redirect(url_for('index'))
+def snd_email(to_email, subject, body):
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USERNAME
+    msg['To'] = to_email
+    msg['Subject'] = subject
+
+    msg.attach(MIMEText(body, 'plain'))
+
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(SMTP_USERNAME, to_email, text)
+        server.quit()
+        print(f'Email sent to {to_email}')
+    except Exception as e:
+        print(f'Error sending email: {str(e)}')
+
+@app.route('/payment_cancel/<booking_id>')
+def payment_cancel(booking_id):
+    return render_template('payment_cancel.html', booking_id=booking_id)
+
+@app.route('/cancel')
+def cancel():
+    return "Payment Cancelled", 400
 
 
 #login
@@ -1108,7 +1538,7 @@ def login():
 def logout():
     session.clear()  # Clear the session
     flash('You have been logged out!', 'info')
-    return redirect(url_for('index')) 
+    return redirect(url_for('login')) 
 
 if __name__ == '__main__':
     app.run(debug=True)
