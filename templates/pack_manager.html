@@ -11,7 +11,55 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
     <style>
+        /* Custom styles for the select box */
+        .custom-select {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+
+        /* Custom styles for the table */
+        .custom-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .custom-table th, .custom-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .custom-table th {
+            background-color: #f2f2f2;
+        }
+
+        .custom-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+        .custom-table td {
+            vertical-align: middle;
+        }
+
+        .custom-table td:last-child {
+            text-align: center;
+        }
+
+        .custom-table .status-completed {
+            color: green;
+        }
+
+        .custom-table .status-incomplete {
+            color: red;
+        }
         .dynamic-box {
             display: flex;
             justify-content: center;
@@ -47,7 +95,7 @@
     <div class="admin-panel">
         <nav class="navbar">
             <img src="{{ url_for('static', filename='images/aes11.png') }}" alt="Company Logo" class="logo">
-            <center><span style="margin-left: 402p"><b>PACKAGE MANAGER TERMINAL</b></span></center>
+            <center><span style="margin-left: 402p"><b>Welcome, {{ c_name }}</b></span></center>
             <div class="user-menu">
                 <img src="{{ url_for('static', filename='images/' + user_image) }}" alt="User" class="user-image" onclick="toggleDropdown()">
                 <div class="dropdown-menu" id="dropdownMenu">
@@ -118,6 +166,10 @@
                                                             <tr>
                                                                 <th>Discount</th>
                                                                 <td>{{ trip.discount }}</td>
+                                                            </tr>
+                                                            <tr>
+                                                                <th>Bookings</th>
+                                                                <td>{{ trip.bookings }}</td>
                                                             </tr>
                                                             <tr>
                                                                 <th>Total Amount</th>
@@ -271,8 +323,30 @@
                     </div>
                 </section>
                 <section id="users" class="section">
-                    <h1><b style="color:white;">User Data</b></h1><br>
+                    <h1><b style="color:white;">Bookings</b></h1><br>
+                    <select id="location-select" class="form-select custom-select" aria-label="Select package">
+                        <option selected>Select package</option>
+                    </select>
                     <div class="dynamic-box" id="user-data">
+                        <div style="text-align: right; margin-bottom: 20px;">
+                            <a href="#" id="print-details" style="display: none;margin-bottom: 194px;margin-right: -1242px;">Print Details</a>
+                        </div>
+                        <table id="bookings-table" class="table custom-table" style="display: none;">
+                            <thead>
+                                <tr>
+                                    <th>Sl. No</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Booking Date</th>
+                                    <th>Booking Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be dynamically added here -->
+                            </tbody>
+                        </table>
                     </div>
                 </section>
 
@@ -681,5 +755,131 @@
             });
         });
     </script>
+   <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const locationSelect = document.getElementById('location-select');
+        const printDetailsLink = document.getElementById('print-details');
+        const bookingsTable = document.getElementById('bookings-table');
+        const bookingsTableBody = bookingsTable.querySelector('tbody');
+    
+        // Function to fetch locations based on user_id
+        function fetchLocations() {
+            const user_id = '{{ session['user_id'] }}'; // Replace with actual session user_id
+            fetch(`/get_locations?user_id=${user_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    locationSelect.innerHTML = '<option selected>Select package</option>';
+                    data.forEach(location => {
+                        const option = document.createElement('option');
+                        option.value = location.trip_id;
+                        option.textContent = location.location;
+                        locationSelect.appendChild(option);
+                    });
+                });
+        }
+    
+        // Function to fetch bookings based on trip_id
+        function fetchBookings(trip_id) {
+            fetch(`/get_bookings?trip_id=${trip_id}`)
+                .then(response => response.json())
+                .then(data => {
+                    bookingsTableBody.innerHTML = '';
+                    data.forEach((booking, index) => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${index + 1}</td>
+                            <td>${booking.name}</td>
+                            <td>${booking.email}</td>
+                            <td>${booking.phone}</td>
+                            <td>${booking.booking_date}</td>
+                            <td>${booking.booking_time}</td>
+                            <td style="color: ${booking.status == 1 ? 'green' : 'red'};">${booking.status == 1 ? 'Completed' : 'Incomplete'}</td>
+                        `;
+                        bookingsTableBody.appendChild(row);
+                    });
+                    bookingsTable.style.display = 'table';
+                    printDetailsLink.style.display = 'block'; // Show the "Print Details" link
+                });
+        }
+    
+        // Event listener for location select change
+        locationSelect.addEventListener('change', function() {
+            const selectedTripId = locationSelect.value;
+            if (selectedTripId) {
+                fetchBookings(selectedTripId);
+            } else {
+                bookingsTable.style.display = 'none';
+                printDetailsLink.style.display = 'none'; // Hide the "Print Details" link
+            }
+        });
+    
+        // Fetch locations on page load
+        fetchLocations();
+    });
+    </script>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const printDetailsLink = document.getElementById('print-details');
+            
+                printDetailsLink.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    generatePDF();
+                });
+            
+                function generatePDF() {
+                    const doc = new jspdf.jsPDF();
+                    const table = document.getElementById('bookings-table');
+                    const rows = table.querySelectorAll('tbody tr');
+            
+                    // Add header
+                    doc.setFontSize(22);
+                    doc.text('Trip With Me', 105, 20, { align: 'center' });
+            
+                    doc.setFontSize(18);
+                    doc.text('{{ c_name }}', 105, 30, { align: 'center' });
+            
+                    const now = new Date();
+                    const date = now.toLocaleDateString();
+                    const time = now.toLocaleTimeString();
+            
+                    doc.setFontSize(12);
+                    doc.text(`Date: ${date}`, 10, 40);
+                    doc.text(`Time: ${time}`, 180, 40, { align: 'right' });
+            
+                    // Add table
+                    const head = [['Sl. No', 'Name', 'Email', 'Phone', 'Booking Date', 'Booking Time', 'Status']];
+                    const body = Array.from(rows).map(row => {
+                        return Array.from(row.querySelectorAll('td')).map(cell => cell.innerText);
+                    });
+            
+                    doc.autoTable({
+                        startY: 50,
+                        head: head,
+                        body: body,
+                        theme: 'grid',
+                        styles: {
+                            fontSize: 10,
+                            cellPadding: 2,
+                            lineColor: [0, 0, 0],
+                            lineWidth: 0.1
+                        },
+                        headStyles: {
+                            fillColor: [242, 242, 242],
+                            textColor: [0, 0, 0],
+                            halign: 'center'
+                        },
+                        bodyStyles: {
+                            halign: 'center'
+                        },
+                        alternateRowStyles: {
+                            fillColor: [255, 255, 255]
+                        }
+                    });
+            
+                    // Save the PDF
+                    doc.save('bookings.pdf');
+                }
+            });
+            </script>
 </body>
 </html>
