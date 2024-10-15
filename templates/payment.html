@@ -8,12 +8,10 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <button id="checkout-button">Confirm Booking</button>
-
     <script>
         var stripe = Stripe('pk_test_51OCqKJSDxrkb8ke1OSNhTmkmB3LWaTP5XiPeegCNcC1qhKrrhKw6dFyNCVfcwM0u8JdNR7I0R23JejLeqxmq5IJ600PlWUyyP1'); // Replace with your Stripe publishable key
 
-        $('#checkout-button').on('click', function() {
+        $(document).ready(function() {
             var booking_id = '{{ booking_id }}';
             var user_id = '{{ session["user_id"] }}';
 

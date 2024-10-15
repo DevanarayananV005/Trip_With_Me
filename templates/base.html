@@ -231,8 +231,14 @@
                     <li class="nav-item">
                         <a class="nav-link active" aria-current="page" style="color:white;" href="#contact">Contact</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="#" onclick="handleBookings(); return false;">Bookings</a>
+                    </li>
                     {% if session.get('user') %}
-                    <li class="nav-item" style="margin-left: 725px;">
+                    <!-- <li class="nav-item" style="margin-left: 650px;">
+                    <p>{{user_name}}</p></li> -->
+                    <li class="nav-item" style="margin-left: 665px;">
+                        
                         <a id="notification" class="notification-icon no-message" href="{{ url_for('notifications') }}">
                             <i class="fas fa-bell"></i>
                         </a>
@@ -453,5 +459,19 @@ function isUserLoggedIn() {
     return {{ 'true' if session.get('user') else 'false' }};
 }
 </script>
+<script>
+    function handleBookings() {
+        if (isUserLoggedIn()) {
+            window.location.href = "{{ url_for('bookings') }}";
+        } else {
+            window.location.href = "{{ url_for('login') }}";
+        }
+    }
+    
+    // Make sure this function is defined
+    function isUserLoggedIn() {
+        return {{ 'true' if session.get('user') else 'false' }};
+    }
+    </script>
 </body>
 </html>

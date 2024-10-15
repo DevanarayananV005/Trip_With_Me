@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bookings</title>
+    <link rel="icon" href="static/images/aes11.png" type="image/icon type">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .content-box {
+            width: 100%;
+            max-width: 800px;
+            background-color: black; /* Light grey background */
+            border-radius: 15px; /* Curvy edges */
+            margin: 50px auto; /* Center align and space from navbar */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional shadow for better visibility */
+            padding: 20px;
+            color: rgb(252, 252, 252);
+        }
+        .booking-item {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+        .cancel-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .confirmed-button {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: not-allowed;
+        }
+        .cancelled-button {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body style="font-family: 'Courier New', Courier, monospace; background: rgb(82, 82, 82);">
+    <div class="navbar mt-0 pt-0">
+        <nav class="navbar navbar-expand-lg sticky-top w-100" style="background: black;">
+            <div class="container-fluid">
+                <img src="{{ url_for('static', filename='images/aes11.png') }}" style="width: 50px; height: 50px;" alt="Brand Logo">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color: white;" href="{{ url_for('index') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('scheduletrip') }}" target="__blank">Schedule Trip</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('findtrip') }}">Find Trip</a>
+                        </li>
+                    </ul>
+                    <li class="nav-item" style="margin-left: 800px;">
+                        {% if user_image %}
+                            <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="User" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-left: 20px;">
+                        {% else %}
+                            <img src="{{ url_for('static', filename='images/default_user.jpg') }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Default User" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-left: 20px;">
+                        {% endif %}
+                        <ul style="margin-left: 1350px;" class="dropdown-menu">
+                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">LogOut</a></li>
+                            <li><a class="dropdown-item" href="{{ url_for('updateuser') }}">Account Info</a></li>
+                        </ul>
+                    </li>
+                </div>
+            </div>
+        </nav>
+    </div>
+    <div> 
+        <h1 align="center" style="color:black;">
+            <b>BOOKINGS</b>
+        </h1>
+    </div>
+    <!-- Content Box -->
+    <div class="content-box">
+        {% if bookings %}
+            {% for booking in bookings %}
+                <div class="booking-item">
+                    <p><b>Destination:</b> {{ booking.location }}</p>
+                    <p><b>Dates:</b> {{ booking.start_date }} to {{ booking.end_date }}</p>
+                    <p><b>Total Amount:</b> ₹{{ booking.total_amount }}</p>
+                    <p><b>Company:</b> {{ booking.company_name }} | <b>Email:</b> {{ booking.company_email }} | <b>Phone:</b> {{ booking.company_phone }}</p>
+                    <p><b>Booking Date:</b> {{ booking.booking_date }} <b>Booking Time:</b> {{ booking.booking_time }}</p>
+                    {% if booking.status == 'Pending' %}
+                        <a href="{{ url_for('payment', booking_id=booking.booking_id) }}" class="btn btn-success">Complete Payment</a>
+                    {% elif booking.status == 'Confirmed' %}
+                        {% if booking.days_until_start <= 2 %}
+                            <button class="confirmed-button" disabled>Booking Confirmed</button>
+                        {% else %}
+                            <button class="cancel-button" onclick="showCancelModal('{{ booking.booking_id }}')">Cancel Booking</button>
+                        {% endif %}
+                        <a href="{{ url_for('generate_invoice', booking_id=booking.booking_id) }}" class="btn btn-link">Print Invoice</a>
+                    {% elif booking.status == 'Cancelled' %}
+                        <button class="cancelled-button" disabled>Trip Cancelled</button>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p><strong>No bookings available.</strong></p>
+        {% endif %}
+    </div>
+
+    <!-- Cancel Booking Modal -->
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelModalLabel">Confirm Cancellation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you confirming the cancellation of your package booking? The paid amount will be credited back to you after some charges are deducted.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-danger" onclick="cancelBooking()">Confirm Cancellation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBookingId = '';
+
+        function showCancelModal(bookingId) {
+            currentBookingId = bookingId;
+            $('#cancelModal').modal('show');
+        }
+
+        function cancelBooking() {
+            $.ajax({
+                url: "{{ url_for('cancel_booking') }}",
+                method: 'POST',
+                data: { booking_id: currentBookingId },
+                success: function(response) {
+                    if (response.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: 'Booking cancelled successfully',
+                            showConfirmButton: false,
+                            timer: 1500
+                        }).then(function() {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error', response.message || 'Failed to cancel booking. Please try again.', 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'An error occurred. Please try again.', 'error');
+                }
+            });
+            $('#cancelModal').modal('hide');
+        }
+
+        // ... (existing script content) ...
+    </script>
+</body>
+</html>

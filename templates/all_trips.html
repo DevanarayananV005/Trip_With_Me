@@ -180,7 +180,7 @@
 
                 tripsToRender.forEach(trip => {
                     const tripStartDate = new Date(trip.start_date);
-                    if (tripStartDate >= tomorrow) {
+                    if (tripStartDate >= tomorrow && trip.bookings < parseInt(trip.participants)) {
                         const card = document.createElement('div');
                         card.className = 'col-md-4 mb-4';
                         card.innerHTML = `
@@ -190,6 +190,7 @@
                                     <h3>${trip.location}</h3>
                                     <p>Total Amount: $${calculateTotalAmount(trip).toFixed(2)}</p>
                                     <p>From: ${trip.start_date} <br>To: ${trip.end_date}</p>
+                                    <p>Available Spots: ${parseInt(trip.participants) - trip.bookings}</p>
                                     <button class="show-details-btn" onclick="redirectToDetails('${trip.id}')">Show Details</button>
                                 </div>
                             </div>

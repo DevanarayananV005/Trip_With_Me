@@ -21,9 +21,17 @@ from jinja2 import Environment, FileSystemLoader
 import math
 import stripe
 import logging
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from io import BytesIO
+from flask import send_file
+
 logging.basicConfig(level=logging.DEBUG)
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 # Set secret key
 secret_key = secrets.token_hex(16)
@@ -101,8 +109,10 @@ def index():
     if 'user' in session:
         user_id = session['user_id']
         pers_det = db.child("per_det").child(user_id).get().val()
-        user_image = pers_det.get('image', 'default_image.jpg')  # Default image if not found
-        response = make_response(render_template('index.html', user_image=user_image, user_logged_in=True))
+        users = db.child("users").child(user_id).get().val()
+        user_image = pers_det.get('image', 'default_image.jpg') 
+        user_name = users.get('name') # Default image if not found
+        response = make_response(render_template('index.html',user_name=user_name, user_image=user_image, user_logged_in=True))
     else:
         response = make_response(render_template('landing.html', user_logged_in=False))
     
@@ -1533,6 +1543,210 @@ def login():
 
     return render_template('login.html')
 
+#bookings route
+from datetime import datetime
+
+@app.route('/bookings')
+def bookings():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    current_date = datetime.now().date()
+    
+    try:
+        # Fetch user's image from per_det
+        user_image = db.child("per_det").child(user_id).child("image").get().val()
+        # If user_image is None or empty, set it to None (will use default in template)
+        user_image = user_image if user_image else None
+
+        # Fetch all bookings for the current user
+        all_bookings = db.child("bookings").order_by_child("user_id").equal_to(user_id).get()
+        print(f"All bookings: {all_bookings.val()}")  # Debug print
+        
+        bookings_data = []
+        if all_bookings is not None:
+            for booking in all_bookings.each():
+                booking_id = booking.key()
+                booking_info = booking.val()
+                trip_id = booking_info.get('trip_id')
+                
+                print(f"Processing booking: {booking_id}")  # Debug print
+                print(f"Trip ID: {trip_id}")  # Debug print
+                
+                trip_data = db.child("trips").child(trip_id).get().val()
+                
+                if trip_data:
+                    package_manager_id = trip_data.get('user_id')
+                    package_manager_data = db.child("package_manager").child(package_manager_id).get().val()
+                    
+                    if package_manager_data:
+                        booking_info = {
+                            'booking_id': booking_id,
+                            'booking_date': booking_info.get('booking_date'),
+                            'booking_time': booking_info.get('booking_time'),
+                            'status': 'Cancelled' if booking_info.get('status') == 2 else ('Confirmed' if booking_info.get('status') == 1 else 'Pending'),
+                            'location': trip_data.get('location'),
+                            'start_date': trip_data.get('start_date'),
+                            'end_date': trip_data.get('end_date'),
+                            'basic_amount': trip_data.get('basic_amount'),
+                            'discount': trip_data.get('discount'),
+                            'tax_percentage': trip_data.get('tax_percentage'),
+                            'company_name': package_manager_data.get('c_name'),
+                            'company_email': package_manager_data.get('c_email'),
+                            'company_phone': package_manager_data.get('c_phone')
+                        }
+                        
+                        # Calculate total amount
+                        basic_amount = float(trip_data.get('basic_amount', 0))
+                        discount = float(trip_data.get('discount', 0))
+                        tax_percentage = float(trip_data.get('tax_percentage', 0))
+                        total_amount = basic_amount * (1 - discount/100) * (1 + tax_percentage/100)
+                        booking_info['total_amount'] = f"{total_amount:.2f}"
+                        
+                        # Calculate days until start
+                        start_date = datetime.strptime(booking_info['start_date'], '%Y-%m-%d').date()
+                        days_until_start = (start_date - current_date).days
+                        booking_info['days_until_start'] = days_until_start
+                        
+                        bookings_data.append(booking_info)
+                    else:
+                        print(f"No package manager data found for package_manager_id: {package_manager_id}")  # Debug print
+                else:
+                    print(f"No trip data found for trip_id: {trip_id}")  # Debug print
+
+        print(f"Processed bookings data: {bookings_data}")  # Debug print
+
+        return render_template('bookings.html', bookings=bookings_data, user_image=user_image, current_date=current_date)
+
+    except Exception as e:
+        app.logger.error(f"Error fetching bookings: {str(e)}")
+        return render_template('bookings.html', bookings=None, user_image=None, current_date=current_date, error="An error occurred while fetching your bookings.")
+
+#invoice generation
+@app.route('/generate_invoice/<booking_id>')
+def generate_invoice(booking_id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
+    user_id = session['user_id']
+    
+    try:
+        # Fetch booking details
+        booking = db.child("bookings").child(booking_id).get().val()
+        trip_id = booking['trip_id']
+        trip = db.child("trips").child(trip_id).get().val()
+        package_manager = db.child("package_manager").child(trip['user_id']).get().val()
+        user = db.child("users").child(user_id).get().val()
+        per_det = db.child("per_det").child(user_id).get().val()
+
+        # Create a PDF buffer
+        buffer = BytesIO()
+
+        # Create the PDF object
+        doc = SimpleDocTemplate(buffer, pagesize=letter, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        elements = []
+
+        # Styles
+        styles = getSampleStyleSheet()
+        styles.add(ParagraphStyle(name='Center', alignment=1))
+
+        # Add content to the PDF
+        elements.append(Paragraph("TRIP WITH ME", styles['Title']))
+        elements.append(Spacer(1, 12))
+        elements.append(Paragraph(package_manager['c_name'], styles['Center']))
+        elements.append(Spacer(1, 24))
+
+        # Date and Time
+        current_datetime = datetime.now()
+        date_time = Table([
+            ['Date: ' + current_datetime.strftime('%Y-%m-%d'), 'Time: ' + current_datetime.strftime('%H:%M:%S')]
+        ], colWidths=[2.5*inch, 2.5*inch])
+        date_time.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER')]))
+        elements.append(date_time)
+        elements.append(Spacer(1, 24))
+
+        # Horizontal line
+        elements.append(Paragraph("_" * 65, styles['Center']))
+        elements.append(Spacer(1, 24))
+
+        # User details
+        user_details = [
+            ['To,'],
+            [user['name']],
+            [per_det['adname']],
+            [per_det['district']],
+            [per_det['state']]
+        ]
+        user_table = Table(user_details, colWidths=[4*inch])
+        user_table.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT')]))
+        elements.append(user_table)
+        elements.append(Spacer(1, 24))
+
+        # Invoice heading
+        elements.append(Paragraph("Invoice", styles['Center']))
+        elements.append(Spacer(1, 24))
+
+        # Invoice details
+        basic_amount = float(trip['basic_amount'])
+        tax_percentage = float(trip['tax_percentage'])
+        discount = float(trip['discount'])
+        tax = basic_amount * (tax_percentage / 100)
+        discount_amount = basic_amount * (discount / 100)
+        total_amount = basic_amount + tax - discount_amount
+
+        invoice_data = [
+            ['Trip Package Destination:', trip['location']],
+            ['Basic Amount:', f"{basic_amount:.2f}"],
+            ['Tax:', f"{tax:.2f}"],
+            ['Discount:', f"{discount_amount:.2f}"],
+            ['Total Amount:', f"{total_amount:.2f}"]
+        ]
+        invoice_table = Table(invoice_data, colWidths=[3*inch, 2*inch])
+        invoice_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('INNERGRID', (0, 0), (-1, -1), 0.25, colors.black),
+            ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+        ]))
+        elements.append(invoice_table)
+
+        # Build the PDF
+        doc.build(elements)
+
+        # Move the buffer position to the beginning
+        buffer.seek(0)
+
+        # Send the PDF as a downloadable file
+        return send_file(buffer, as_attachment=True, download_name='invoice.pdf', mimetype='application/pdf')
+
+    except Exception as e:
+        app.logger.error(f"Error generating invoice: {str(e)}")
+        flash('An error occurred while generating the invoice.', 'error')
+        return redirect(url_for('bookings'))
+
+@app.route('/cancel_booking', methods=['POST'])
+def cancel_booking():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'User not logged in'})
+
+    booking_id = request.form.get('booking_id')
+    if not booking_id:
+        return jsonify({'success': False, 'message': 'Missing booking_id'})
+
+    try:
+        # Update the booking status to 2 (Cancelled)
+        db.child("bookings").child(booking_id).update({"status": 2})
+
+        # You may want to add additional logic here, such as:
+        # - Updating the trip's booking count
+        # - Initiating a refund process
+        # - Sending a cancellation confirmation email
+
+        return jsonify({'success': True, 'message': 'Booking cancelled successfully'})
+    except Exception as e:
+        app.logger.error(f"Error cancelling booking: {str(e)}")
+        return jsonify({'success': False, 'message': 'Failed to cancel booking'})
 
 @app.route('/logout')
 def logout():
