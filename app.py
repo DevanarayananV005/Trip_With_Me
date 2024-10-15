@@ -28,6 +28,52 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from io import BytesIO
 from flask import send_file
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+import nltk
+from nltk.corpus import stopwords
+
+
+#ml code
+# Download NLTK stopwords
+nltk.download('stopwords', quiet=True)
+
+# Load and prepare the ML model
+def load_csv_with_different_encodings(file_path):
+    encodings = ['utf-8', 'iso-8859-1', 'cp1252']
+    for encoding in encodings:
+        try:
+            return pd.read_csv(file_path, encoding=encoding)
+        except UnicodeDecodeError:
+            continue
+    raise ValueError(f"Unable to read the file {file_path} with any of the attempted encodings.")
+
+try:
+    df = load_csv_with_different_encodings('static/data.csv')
+    X_train, X_test, y_train, y_test = train_test_split(df['review'], df['label'], test_size=0.2, random_state=42)
+
+    custom_stop_words = list(set(stopwords.words('english')))
+    tfidf = TfidfVectorizer(max_features=1000, stop_words=custom_stop_words)
+
+    X_train_tfidf = tfidf.fit_transform(X_train)
+    model = LogisticRegression()
+    model.fit(X_train_tfidf, y_train)
+
+    def classify_review(review_text):
+        review_tfidf = tfidf.transform([review_text])
+        prediction = model.predict(review_tfidf)
+        return "Authentic" if prediction[0] == 1 else "Fake"
+
+except Exception as e:
+    print(f"Error loading or processing the CSV file: {str(e)}")
+    # Set up a dummy classifier function that always returns "Authentic"
+    def classify_review(review_text):
+        print("Warning: Using dummy classifier due to CSV loading error.")
+        return "Authentic"
+
+#rest code
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -805,15 +851,23 @@ def submit_review():
                     if review_data['reviewer_id'] == reviewer_id and review_data['reviewee_id'] == reviewee_id:
                         return jsonify({'success': False, 'message': 'Review already provided'})
 
-            # If no existing review, submit the new review
-            db.child("reviews").push({
-                'reviewer_id': reviewer_id,
-                'reviewee_id': reviewee_id,
-                'review': review,
-                'review_date': review_date,
-                'review_time': review_time
-            })
-            return jsonify({'success': True})
+            # Verify the review using ML
+            review_classification = classify_review(review)
+            
+            if review_classification == "Authentic":
+                # If the review is authentic, submit it to the database
+                db.child("reviews").push({
+                    'reviewer_id': reviewer_id,
+                    'reviewee_id': reviewee_id,
+                    'review': review,
+                    'review_date': review_date,
+                    'review_time': review_time
+                })
+                return jsonify({'success': True, 'message': 'Review submitted successfully'})
+            else:
+                # If the review is classified as fake, return an error message
+                return jsonify({'success': False, 'message': 'Please enter an authentic review'})
+
         except Exception as e:
             print(f"Error submitting review: {str(e)}")
             return jsonify({'success': False, 'message': 'An error occurred'})
