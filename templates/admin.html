@@ -64,6 +64,7 @@
                     <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Users</span></a></li>
                     <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Schedule Trip</span></a></li>
                     <li><a href="#" onclick="showSection('companies')"><i class="fas fa-home"></i> <span class="nav-text">Companies</span></a></li>
+                    <li><a href="#" onclick="showSection('comments')"><i class="fas fa-message"></i> <span class="nav-text">Comments</span></a></li>
                     <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-line"></i> <span class="nav-text">Reports</span></a></li>
                 </ul>
             </nav>
@@ -346,6 +347,138 @@
                             </div>
                         </div>
                     </div>
+
+                <!-- comments message -->
+                <section id="comments" class="section">
+                    <h1><b style="color:white;">Comments</b></h1><br>
+                    <div class="dynamic-box" id="reports">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Sl No</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Comments</th>
+                                    <th>Reply</th>
+                                </tr>
+                            </thead>
+                            <tbody id="commentsTableBody">
+                                <!-- Table rows will be dynamically inserted here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+                
+                <!-- Comment Modal -->
+                <div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="commentModalLabel">Comment</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body" id="commentModalBody">
+                                <!-- Comment will be inserted here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Reply Modal -->
+                <div class="modal fade" id="replyModal" tabindex="-1" aria-labelledby="replyModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="replyModalLabel">Reply to Comment</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <textarea id="replyText" class="form-control" rows="5"></textarea>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-primary" id="sendReplyBtn">Send Reply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <script>
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Fetch comments data
+                    fetch('/get_comments')
+                        .then(response => response.json())
+                        .then(data => {
+                            const tableBody = document.getElementById('commentsTableBody');
+                            data.forEach((comment, index) => {
+                                const row = `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${comment.name}</td>
+                                        <td>${comment.email}</td>
+                                        <td>${comment.phone}</td>
+                                        <td><a href="#" class="view-comment" data-comment="${comment.comment}">View Comment</a></td>
+                                        <td><button class="btn btn-primary reply-btn" data-email="${comment.email}">Reply</button></td>
+                                    </tr>
+                                `;
+                                tableBody.innerHTML += row;
+                            });
+                
+                            // View Comment functionality
+                            document.querySelectorAll('.view-comment').forEach(link => {
+                                link.addEventListener('click', function(e) {
+                                    e.preventDefault();
+                                    const comment = this.getAttribute('data-comment');
+                                    document.getElementById('commentModalBody').textContent = comment;
+                                    new bootstrap.Modal(document.getElementById('commentModal')).show();
+                                });
+                            });
+                
+                            // Reply functionality
+                            document.querySelectorAll('.reply-btn').forEach(button => {
+                                button.addEventListener('click', function() {
+                                    const email = this.getAttribute('data-email');
+                                    const replyModal = new bootstrap.Modal(document.getElementById('replyModal'));
+                                    replyModal.show();
+                
+                                    document.getElementById('sendReplyBtn').onclick = function() {
+                                        const replyText = document.getElementById('replyText').value;
+                                        fetch('/send_reply', {
+                                            method: 'POST',
+                                            headers: {
+                                                'Content-Type': 'application/json',
+                                            },
+                                            body: JSON.stringify({
+                                                email: email,
+                                                reply: replyText
+                                            })
+                                        })
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.success) {
+                                                Swal.fire({
+                                                    icon: 'success',
+                                                    title: 'Email sent successfully'
+                                                });
+                                                button.disabled = true;
+                                                button.textContent = 'Reply Sent';
+                                                replyModal.hide();
+                                            } else {
+                                                Swal.fire({
+                                                    icon: 'error',
+                                                    title: 'Failed to send email'
+                                                });
+                                            }
+                                        });
+                                    };
+                                });
+                            });
+                        });
+                });
+                </script>
+
+                <!-- report section -->
                 <section id="reports" class="section">
                     <h1><b style="color:white;">Reports</b></h1><br>
                     <div class="dynamic-box" id="reports">

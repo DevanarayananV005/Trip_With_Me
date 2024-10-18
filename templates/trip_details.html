@@ -110,7 +110,7 @@
                     {{ (trip.basic_amount|float + ((trip.tax_percentage|float / 100) * trip.basic_amount|float)) - ((trip.discount|float / 100) * trip.basic_amount|float) }}
                 </p>
                 <button class="btn btn-primary" id="book_now">Book Now</button>
-                <button class="btn btn-secondary">Pay Later</button>
+                <!-- <button class="btn btn-secondary">Pay Later</button> -->
 
                 <!-- Add this modal -->
                 <div class="modal fade" id="bookingModal" tabindex="-1" aria-labelledby="bookingModalLabel" aria-hidden="true">

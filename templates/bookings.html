@@ -48,6 +48,15 @@
             border-radius: 5px;
             cursor: not-allowed;
         }
+        .return-payment-completed-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: not-allowed;
+            opacity: 0.8;
+        }
     </style>
 </head>
 <body style="font-family: 'Courier New', Courier, monospace; background: rgb(82, 82, 82);">
@@ -111,6 +120,8 @@
                         <a href="{{ url_for('generate_invoice', booking_id=booking.booking_id) }}" class="btn btn-link">Print Invoice</a>
                     {% elif booking.status == 'Cancelled' %}
                         <button class="cancelled-button" disabled>Trip Cancelled</button>
+                    {% elif booking.status == 'Return payment completed' %}
+                        <button class="return-payment-completed-button" disabled>Return Payment Completed</button>
                     {% endif %}
                 </div>
             {% endfor %}

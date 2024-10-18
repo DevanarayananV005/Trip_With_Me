@@ -90,7 +90,8 @@
                               <b>Date:</b> {{ trip.tripdate }} <br>
                               <b>Tourist:</b> {{ trip.name }} <br>
                               <b>Budget:</b> {{ trip.budget }} <br>
-                              <b>Rating:</b><br>
+                              <!-- Replace the "Review" line (around line 94) with this: -->
+                            <b>Reviews:</b> <a href="{{ url_for('reviews', user_id=trip.receiver_id) }}">View Reviews</a><br>
                               <!-- Unique modal for each trip -->
                               <button type="button" class="btn btn-outline-info" style="width: 263px;" data-bs-toggle="modal" data-bs-target="#exampleModal{{ loop.index }}">Show Details</button>
                           </p>

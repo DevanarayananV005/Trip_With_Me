@@ -303,15 +303,44 @@
     <div id="contact" class="container mt-3 section">
         <h2>Contact</h2>
         <p>
-            We'd love to hear from you! For any inquiries, support, or feedback, please reach out to us through any of the following channels:
+            We'd love to hear from you! For any inquiries, support, or feedback, please reach out to us :
         </p>
-        <p>
-            Phone: +1 (800) 123-4567<br>
-            Email: tripwithme@gmail.com<br>
-            Instagram: @tripwithme_official<br>
-            Twitter: @TripWithMe<br>
-            Stay connected and join our community for the latest updates and travel inspiration.
-        </p>
+        <div class="contact-form">
+            <form class="contact-form" id="contact-form"
+                  data-user-name="{{ session['user']['name'] if 'user' in session else '' }}"
+                  data-user-email="{{ session['user']['email'] if 'user' in session else '' }}"
+                  data-user-phone="{{ session['user'].get('phone', '') if 'user' in session else '' }}">
+                <table align="center" class="contact-table" id="contact-table" style="height: 315px;width: 789px;">
+                    <tr>
+                        <td colspan="2">
+                            <input type="text" name="name" id="name" class="form-control" placeholder="Name" aria-label="Name" aria-describedby="addon-wrapping">
+                            <span id="name-error" class="error-message"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <input type="text" name="email" id="email" class="form-control" placeholder="email" aria-label="email" aria-describedby="addon-wrapping">
+                            <span id="email-error" class="error-message"></span>
+                        </td>
+                        <td>
+                            <input type="text" name="phone" id="phone" class="form-control" placeholder="Phone Number" aria-label="phone" aria-describedby="addon-wrapping">
+                            <span id="phone-error" class="error-message"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <textarea class="form-control" name="comment" id="comment" placeholder="Leave a comment here" style="height: 100px"></textarea>
+                            <span id="comment-error" class="error-message"></span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="2">
+                            <input type="submit" name="submit" class="btn btn-outline-light" id="contact-submit" style="width: 785px;">
+                        </td>
+                    </tr>
+                </table>
+            </form>
+        </div>
     </div>  
         <div style="background:#009be3;height: 39px;">
             &copy; 2024 Trip With Me. All rights reserved.
@@ -380,6 +409,128 @@
         // Check for messages on page load
         document.addEventListener('DOMContentLoaded', checkForMessages);
 </script>
+
+<!-- script for contact -->
+ <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('contact-form');
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const phoneInput = document.getElementById('phone');
+    const commentInput = document.getElementById('comment');
+
+    // Populate form fields if user is logged in
+    const userName = form.dataset.userName;
+    const userEmail = form.dataset.userEmail;
+    const userPhone = form.dataset.userPhone;
+
+    if (userName) nameInput.value = userName;
+    if (userEmail) emailInput.value = userEmail;
+    if (userPhone) phoneInput.value = userPhone;
+
+    // Function to display error messages
+    function setError(elementId, message) {
+        document.getElementById(elementId).textContent = message;
+    }
+
+    // Function to clear error messages
+    function clearError(elementId) {
+        document.getElementById(elementId).textContent = '';
+    }
+
+    // Name validation
+    function validateName() {
+        const name = nameInput.value.trim();
+        const nameRegex = /^[a-zA-Z\s]{1,30}$/;
+        if (!nameRegex.test(name) || (name.split(' ').length - 1) > 4) {
+            setError('name-error', 'Name should contain only letters and up to 4 spaces');
+            return false;
+        }
+        clearError('name-error');
+        return true;
+    }
+
+    // Email validation
+    function validateEmail() {
+        const email = emailInput.value.trim();
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(email)) {
+            setError('email-error', 'Please enter a valid email address');
+            return false;
+        }
+        clearError('email-error');
+        return true;
+    }
+
+    // Phone validation
+    function validatePhone() {
+        const phone = phoneInput.value.trim();
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(phone)) {
+            setError('phone-error', 'Phone number should be 10 digits');
+            return false;
+        }
+        clearError('phone-error');
+        return true;
+    }
+
+    // Comment validation
+    function validateComment() {
+        const comment = commentInput.value.trim();
+        const wordCount = comment.split(/\s+/).filter(word => word.length > 0).length;
+        if (wordCount < 3 || wordCount > 30) {
+            setError('comment-error', 'Comment should be between 3 and 30 words');
+            return false;
+        }
+        clearError('comment-error');
+        return true;
+    }
+
+    // Form submission
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        if (validateName() && validateEmail() && validatePhone() && validateComment()) {
+            // All validations passed, proceed with form submission
+            const formData = {
+                name: nameInput.value.trim(),
+                email: emailInput.value.trim(),
+                phone: phoneInput.value.trim(),
+                comment: commentInput.value.trim()
+            };
+
+            // Send data to server
+            fetch('/submit_contact', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Thank you for your message. We will get back to you soon!');
+                    form.reset();
+                } else {
+                    alert('There was an error submitting your message. Please try again.');
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again later.');
+            });
+        }
+    });
+
+    // Add event listeners for real-time validation
+    nameInput.addEventListener('blur', validateName);
+    emailInput.addEventListener('blur', validateEmail);
+    phoneInput.addEventListener('blur', validatePhone);
+    commentInput.addEventListener('blur', validateComment);
+});
+ </script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     let currentIndex = 0;

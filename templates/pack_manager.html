@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.4.0/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.20/jspdf.plugin.autotable.min.js"></script>
     <style>
         /* Custom styles for the select box */
         .custom-select {
@@ -193,8 +193,8 @@
                                             <div class="modal-dialog">
                                                 <div class="modal-content">
                                                     <div class="modal-header">
-                                                        
                                                         <h5 class="modal-title" id="updateModalLabel{{ idx }}">Update Trip</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                     </div>
                                                     <div class="modal-body" style="margin-top: -404px;">
                                                         <form id="updateForm{{ idx }}" onsubmit="updateTrip(event, '{{ trip.id }}', {{ idx }})">
@@ -292,7 +292,7 @@
                                 <label for="discount">Discount</label>
                                 <input type="number" id="discount" name="discount" class="form-control" step="0.01" max="100">
                                 <div class="invalid-feedback">Discount must be a number between 0 and 85.</div>
-                            </div>
+                            </div>                           
                             <div class="form-group">
                                 <label for="participants">Number of Participants</label>
                                 <input type="number" id="participants" name="participants" class="form-control" required>
@@ -300,7 +300,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="description">Description and Requirements</label>
-                                <textarea id="description" name="description" class="form-control" required></textarea>
+                                <textarea id="description" name="description"class="form-control" required></textarea>
                                 <div class="invalid-feedback">Description and Requirements are required and must be between 50 and 700 letters.</div>
                             </div>
                             <div class="form-group">
@@ -318,7 +318,7 @@
                                 <input type="file" id="image3" name="image3" class="form-control" accept=".jpg, .jpeg, .png" required>
                                 <div class="invalid-feedback">Location Image 3 is required and must be a jpg, jpeg, or png file.</div>
                             </div>
-                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <button type="submit" id="tripFormsubmit" class="btn btn-primary">Submit</button>
                         </form>
                     </div>
                 </section>
@@ -349,12 +349,6 @@
                         </table>
                     </div>
                 </section>
-
-                <!-- <section id="companies" class="section">  
-                    <h1><b style="color:white;">Scheduled Trip</b></h1><br>
-                    <div class="dynamic-box" id="scheduled-trip">
-                    </div>
-                </section> -->
                 <section id="reports" class="section">
                     <h1><b style="color:white;">Scheduled Trip</b></h1><br>
                     <div class="dynamic-box" id="scheduled-trip">
@@ -364,275 +358,134 @@
         </div>
     </div>
     <script>
+        // Your existing script for form validation and trip management
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('tripForm');
-            const locationSelect = document.getElementById('location');
-            const startDateInput = document.getElementById('startDate');
-            const endDateInput = document.getElementById('endDate');
-            const basicAmountInput = document.getElementById('basicAmount');
-            const taxPercentageInput = document.getElementById('taxPercentage');
-            const discountInput = document.getElementById('discount');
-            const participantsInput = document.getElementById('participants');
-            const descriptionInput = document.getElementById('description');
-            const imageInputs = document.querySelectorAll('input[type="file"]');
-        
-            // Fetch locations from REST API
-            fetch('https://restcountries.com/v3.1/all')
-                .then(response => response.json())
-                .then(data => {
-                    // Sort countries alphabetically by common name
-                    const sortedCountries = data.sort((a, b) => {
-                        const nameA = a.name.common.toUpperCase();
-                        const nameB = b.name.common.toUpperCase();
-                        if (nameA < nameB) {
-                            return -1;
-                        }
-                        if (nameA > nameB) {
-                            return 1;
-                        }
-                        return 0;
-                    });
-        
-                    // Append sorted countries to the select element
-                    sortedCountries.forEach(country => {
-                        const option = document.createElement('option');
-                        option.value = country.name.common;
-                        option.textContent = country.name.common;
-                        locationSelect.appendChild(option);
-                    });
-        
-                    // Add a default empty option
-                    const defaultOption = document.createElement('option');
-                    defaultOption.value = '';
-                    defaultOption.textContent = 'Select a country';
-                    defaultOption.selected = true;
-                    defaultOption.disabled = true;
-                    locationSelect.insertBefore(defaultOption, locationSelect.firstChild);
+            const locationSelect = document.getElementById('location-select');
+            const printDetailsLink = document.getElementById('print-details');
+            const bookingsTable = document.getElementById('bookings-table');
+            const bookingsTableBody = bookingsTable.querySelector('tbody');
+
+            function updateBookingsTable(bookings) {
+                bookingsTableBody.innerHTML = '';
+                bookings.forEach((booking, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${booking.name}</td>
+                        <td>${booking.email}</td>
+                        <td>${booking.phone}</td>
+                        <td>${booking.booking_date}</td>
+                        <td>${booking.booking_time}</td>
+                        <td>${getStatusCell(booking)}</td>
+                    `;
+                    bookingsTableBody.appendChild(row);
                 });
-        
-            // Validation functions
-            function validateLocation() {
-                if (!locationSelect.value) {
-                    locationSelect.classList.add('is-invalid');
-                } else {
-                    locationSelect.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateStartDate() {
-                const startDate = new Date(startDateInput.value);
-                const today = new Date();
-                const minStartDate = new Date(today.setDate(today.getDate() + 5));
-                const maxStartDate = new Date(today.setFullYear(today.getFullYear() + 2));
-                if (startDate < minStartDate || startDate > maxStartDate) {
-                    startDateInput.classList.add('is-invalid');
-                } else {
-                    startDateInput.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateEndDate() {
-                const startDate = new Date(startDateInput.value);
-                const endDate = new Date(endDateInput.value);
-                const minEndDate = new Date(startDate.setDate(startDate.getDate() + 2));
-                const maxEndDate = new Date(startDate.setMonth(startDate.getMonth() + 4));
-                if (endDate < minEndDate || endDate > maxEndDate) {
-                    endDateInput.classList.add('is-invalid');
-                } else {
-                    endDateInput.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateBasicAmount() {
-                if (!basicAmountInput.value || basicAmountInput.value.length > 7 || basicAmountInput.value < 100) {
-                    basicAmountInput.classList.add('is-invalid');
-                } else {
-                    basicAmountInput.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateTaxPercentage() {
-                const value = parseFloat(taxPercentageInput.value);
-                if (isNaN(value) || value < 0 || value > 20) {
-                    taxPercentageInput.classList.add('is-invalid');
-                } else {
-                    taxPercentageInput.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateDiscount() {
-                if (discountInput.value && (discountInput.value < 0 || discountInput.value > 85)) {
-                    discountInput.classList.add('is-invalid');
-                } else {
-                    discountInput.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateParticipants() {
-                if (!participantsInput.value || participantsInput.value.length > 2) {
-                    participantsInput.classList.add('is-invalid');
-                } else {
-                    participantsInput.classList.remove('is-invalid');
-                }
-            }
-        
-            function validateDescription() {
-                if (descriptionInput.value.length < 50 || descriptionInput.value.length > 700) {
-                    descriptionInput.classList.add('is-invalid');
-                } else {
-                    descriptionInput.classList.remove('is-invalid');
-                }
-            }
-            function areImagesSame(file1, file2) {
-                    return file1 && file2 && file1.name === file2.name && file1.size === file2.size && file1.type === file2.type;
-                }
-        
-            function validateImages() {
-                    const image1 = imageInputs[0].files[0];
-                    const image2 = imageInputs[1].files[0];
-                    const image3 = imageInputs[2].files[0];
 
-                    imageInputs.forEach(input => {
-                        if (!input.value || !['image/jpeg', 'image/png'].includes(input.files[0].type)) {
-                            input.classList.add('is-invalid');
+                // Add event listeners for cancel links
+                document.querySelectorAll('.cancel-link').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const bookingId = this.getAttribute('data-booking-id');
+                        if (bookingId) {
+                            showCancelModal(bookingId);
                         } else {
-                            input.classList.remove('is-invalid');
+                            console.error('Booking ID is undefined');
                         }
                     });
+                });
+            }
 
-                    if (areImagesSame(image1, image2) || areImagesSame(image1, image3) || areImagesSame(image2, image3)) {
-                        imageInputs.forEach(input => {
-                            input.classList.add('is-invalid');
-                        });
+            function getStatusCell(booking) {
+                if (booking.status === 2) {
+                    return `<a href="#" class="cancel-link" data-booking-id="${booking.booking_id}">Booking Canceled</a>`;
+                } else if (booking.status === 1) {
+                    return 'Complete';
+                } else if (booking.status === 3) {
+                    return 'Return payment completed';
+                } else {
+                    return 'Incomplete';
+                }
+            }
+
+            function showCancelModal(bookingId) {
+                console.log("Showing cancel modal for booking ID:", bookingId);
+                fetch(`/get_cancellation_details/${bookingId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.error) {
+                            throw new Error(data.error);
+                        }
+                        const modalBody = document.getElementById('cancelModalBody');
+                        modalBody.innerHTML = `
+                            <p>${data.name} has canceled the booking hence the fund is to be refunded.</p>
+                            <p>As per the date calculated:</p>
+                            <p>Return amount: $${data.return_amount.toFixed(2)}</p>
+                        `;
+                        
+                        // Use Bootstrap's JavaScript API to show the modal
+                        const cancelModal = new bootstrap.Modal(document.getElementById('cancelModal'));
+                        cancelModal.show();
+
+                        document.getElementById('processRefundBtn').onclick = function() {
+                            window.location.href = `/return_payment/${bookingId}`;
+                        };
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
                         Swal.fire({
                             icon: 'error',
-                            title: 'Images cannot be the same'
+                            title: 'Oops...',
+                            text: error.message || 'Something went wrong!',
                         });
-                    }
-                }
-            // Add keyup event listeners for validation
-            locationSelect.addEventListener('change', validateLocation);
-            startDateInput.addEventListener('keyup', validateStartDate);
-            endDateInput.addEventListener('keyup', validateEndDate);
-            basicAmountInput.addEventListener('keyup', validateBasicAmount);
-            taxPercentageInput.addEventListener('keyup', validateTaxPercentage);
-            discountInput.addEventListener('keyup', validateDiscount);
-            participantsInput.addEventListener('keyup', validateParticipants);
-            descriptionInput.addEventListener('keyup', validateDescription);
-            imageInputs.forEach(input => input.addEventListener('change', validateImages));
-        
-            // Set default value for discount
-            discountInput.addEventListener('blur', function() {
-                if (!discountInput.value) {
-                    discountInput.value = 0;
-                }
-            });
-        
-            // Form submission validation
-            form.addEventListener('submit', function(event) {
-                validateLocation();
-                validateStartDate();
-                validateEndDate();
-                validateBasicAmount();
-                validateTaxPercentage();
-                validateDiscount();
-                validateParticipants();
-                validateDescription();
-                validateImages();
-        
-                if (form.querySelectorAll('.is-invalid').length > 0) {
-                    event.preventDefault();
+                    });
+            }
+
+            function fetchBookings(trip_id) {
+                fetch(`/get_bookings?trip_id=${trip_id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        updateBookingsTable(data);
+                        bookingsTable.style.display = 'table';
+                        printDetailsLink.style.display = 'block';
+                    })
+                    .catch(error => console.error('Error:', error));
+            }
+
+            locationSelect.addEventListener('change', function() {
+                const selectedTripId = locationSelect.value;
+                if (selectedTripId) {
+                    fetchBookings(selectedTripId);
+                } else {
+                    bookingsTable.style.display = 'none';
+                    printDetailsLink.style.display = 'none';
                 }
             });
+
+            // Call fetchLocations here
+            fetchLocations();
         });
-        
-        function toggleStatus(tripId, currentStatus) {
-            fetch(`/toggle_status/${tripId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status: currentStatus })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const newStatus = currentStatus === 0 ? 1 : 0;
-                    const message = newStatus === 0 ? 'Package Activated successfully' : 'Package Deactivated';
-                    const icon = newStatus === 0 ? 'success' : 'warning';
-        
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                console.log('Flash messages:', {{ messages | tojson }});
+                {% for category, message in messages %}
+                    console.log('Flash message:', '{{ category }}', '{{ message }}');
                     Swal.fire({
-                        icon: icon,
-                        title: message
-                    }).then(() => {
-                        location.reload();
+                        icon: '{{ category }}',
+                        title: '{{ message }}'
                     });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error updating status'
-                    });
-                }
-            });
-        }
-        
-        function updateTrip(event, tripId, idx) {
-            event.preventDefault();
-            const form = document.getElementById(`updateForm${idx}`);
-            const formData = new FormData(form);
-        
-            const tripData = {
-                location: formData.get('location'),
-                start_date: formData.get('start_date'),
-                end_date: formData.get('end_date'),
-                basic_amount: formData.get('basic_amount'),
-                tax_percentage: formData.get('tax_percentage'),
-                discount: formData.get('discount'),
-                participants: formData.get('participants'),
-                description: formData.get('description')
-            };
-        
-            fetch(`/update_trip/${tripId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(tripData)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Package updated successfully'
-                    }).then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error updating package'
-                    });
-                }
-            });
-        }
-        </script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM fully loaded and parsed');
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            console.log('Flash messages:', {{ messages | tojson }});
-            {% for category, message in messages %}
-                console.log('Flash message:', '{{ category }}', '{{ message }}');
-                Swal.fire({
-                    icon: '{{ category }}',
-                    title: '{{ message }}'
-                });
-            {% endfor %}
-        {% endif %}
-        {% endwith %}
-    });
+                {% endfor %}
+            {% endif %}
+            {% endwith %}
+        });
     </script>
     <!-- script for validation for update -->
     <script>
@@ -755,131 +608,407 @@
             });
         });
     </script>
-   <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const locationSelect = document.getElementById('location-select');
-        const printDetailsLink = document.getElementById('print-details');
-        const bookingsTable = document.getElementById('bookings-table');
-        const bookingsTableBody = bookingsTable.querySelector('tbody');
-    
-        // Function to fetch locations based on user_id
-        function fetchLocations() {
-            const user_id = '{{ session['user_id'] }}'; // Replace with actual session user_id
-            fetch(`/get_locations?user_id=${user_id}`)
-                .then(response => response.json())
-                .then(data => {
-                    locationSelect.innerHTML = '<option selected>Select package</option>';
-                    data.forEach(location => {
-                        const option = document.createElement('option');
-                        option.value = location.trip_id;
-                        option.textContent = location.location;
-                        locationSelect.appendChild(option);
-                    });
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const printDetailsLink = document.getElementById('print-details');
+        
+            printDetailsLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                generatePDF();
+            });
+        
+            function generatePDF() {
+                const doc = new jspdf.jsPDF();
+                const table = document.getElementById('bookings-table');
+                const rows = table.querySelectorAll('tbody tr');
+        
+                // Add header
+                doc.setFontSize(22);
+                doc.text('Trip With Me', 105, 20, { align: 'center' });
+        
+                doc.setFontSize(18);
+                doc.text('{{ c_name }}', 105, 30, { align: 'center' });
+        
+                const now = new Date();
+                const date = now.toLocaleDateString();
+                const time = now.toLocaleTimeString();
+        
+                doc.setFontSize(12);
+                doc.text(`Date: ${date}`, 10, 40);
+                doc.text(`Time: ${time}`, 180, 40, { align: 'right' });
+        
+                // Add table
+                const head = [['Sl. No', 'Name', 'Email', 'Phone', 'Booking Date', 'Booking Time', 'Status']];
+                const body = Array.from(rows).map(row => {
+                    return Array.from(row.querySelectorAll('td')).map(cell => cell.innerText);
                 });
-        }
-    
-        // Function to fetch bookings based on trip_id
-        function fetchBookings(trip_id) {
-            fetch(`/get_bookings?trip_id=${trip_id}`)
-                .then(response => response.json())
-                .then(data => {
-                    bookingsTableBody.innerHTML = '';
-                    data.forEach((booking, index) => {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td>${index + 1}</td>
-                            <td>${booking.name}</td>
-                            <td>${booking.email}</td>
-                            <td>${booking.phone}</td>
-                            <td>${booking.booking_date}</td>
-                            <td>${booking.booking_time}</td>
-                            <td style="color: ${booking.status == 1 ? 'green' : 'red'};">${booking.status == 1 ? 'Completed' : 'Incomplete'}</td>
-                        `;
-                        bookingsTableBody.appendChild(row);
-                    });
-                    bookingsTable.style.display = 'table';
-                    printDetailsLink.style.display = 'block'; // Show the "Print Details" link
+        
+                doc.autoTable({
+                    startY: 50,
+                    head: head,
+                    body: body,
+                    theme: 'grid',
+                    styles: {
+                        fontSize: 10,
+                        cellPadding: 2,
+                        lineColor: [0, 0, 0],
+                        lineWidth: 0.1
+                    },
+                    headStyles: {
+                        fillColor: [242, 242, 242],
+                        textColor: [0, 0, 0],
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        halign: 'center'
+                    },
+                    alternateRowStyles: {
+                        fillColor: [255, 255, 255]
+                    }
                 });
-        }
-    
-        // Event listener for location select change
-        locationSelect.addEventListener('change', function() {
-            const selectedTripId = locationSelect.value;
-            if (selectedTripId) {
-                fetchBookings(selectedTripId);
-            } else {
-                bookingsTable.style.display = 'none';
-                printDetailsLink.style.display = 'none'; // Hide the "Print Details" link
+        
+                // Save the PDF
+                doc.save('bookings.pdf');
             }
         });
-    
-        // Fetch locations on page load
-        fetchLocations();
-    });
     </script>
-        <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const printDetailsLink = document.getElementById('print-details');
-            
-                printDetailsLink.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    generatePDF();
-                });
-            
-                function generatePDF() {
-                    const doc = new jspdf.jsPDF();
-                    const table = document.getElementById('bookings-table');
-                    const rows = table.querySelectorAll('tbody tr');
-            
-                    // Add header
-                    doc.setFontSize(22);
-                    doc.text('Trip With Me', 105, 20, { align: 'center' });
-            
-                    doc.setFontSize(18);
-                    doc.text('{{ c_name }}', 105, 30, { align: 'center' });
-            
-                    const now = new Date();
-                    const date = now.toLocaleDateString();
-                    const time = now.toLocaleTimeString();
-            
-                    doc.setFontSize(12);
-                    doc.text(`Date: ${date}`, 10, 40);
-                    doc.text(`Time: ${time}`, 180, 40, { align: 'right' });
-            
-                    // Add table
-                    const head = [['Sl. No', 'Name', 'Email', 'Phone', 'Booking Date', 'Booking Time', 'Status']];
-                    const body = Array.from(rows).map(row => {
-                        return Array.from(row.querySelectorAll('td')).map(cell => cell.innerText);
+    <!-- Add this modal structure at the end of the body -->
+    <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cancelModalLabel">Booking Cancellation</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="cancelModalBody">
+                    <!-- Content will be dynamically added here -->
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="processRefundBtn">Process Refund</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update the script section -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const locationSelect = document.getElementById('location-select');
+            const printDetailsLink = document.getElementById('print-details');
+            const bookingsTable = document.getElementById('bookings-table');
+            const bookingsTableBody = bookingsTable.querySelector('tbody');
+
+            // Function to fetch locations based on user_id
+            function fetchLocations() {
+                const user_id = '{{ session['user_id'] }}'; // Replace with actual session user_id
+                fetch(`/get_locations?user_id=${user_id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        locationSelect.innerHTML = '<option selected>Select package</option>';
+                        data.forEach(location => {
+                            const option = document.createElement('option');
+                            option.value = location.trip_id;
+                            option.textContent = location.location;
+                            locationSelect.appendChild(option);
+                        });
                     });
-            
-                    doc.autoTable({
-                        startY: 50,
-                        head: head,
-                        body: body,
-                        theme: 'grid',
-                        styles: {
-                            fontSize: 10,
-                            cellPadding: 2,
-                            lineColor: [0, 0, 0],
-                            lineWidth: 0.1
-                        },
-                        headStyles: {
-                            fillColor: [242, 242, 242],
-                            textColor: [0, 0, 0],
-                            halign: 'center'
-                        },
-                        bodyStyles: {
-                            halign: 'center'
-                        },
-                        alternateRowStyles: {
-                            fillColor: [255, 255, 255]
-                        }
+            }
+
+            // Function to fetch bookings based on trip_id
+            function fetchBookings(trip_id) {
+                fetch(`/get_bookings?trip_id=${trip_id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        bookingsTableBody.innerHTML = '';
+                        data.forEach((booking, index) => {
+                            const row = document.createElement('tr');
+                            row.innerHTML = `
+                                <td>${index + 1}</td>
+                                <td>${booking.name}</td>
+                                <td>${booking.email}</td>
+                                <td>${booking.phone}</td>
+                                <td>${booking.booking_date}</td>
+                                <td>${booking.booking_time}</td>
+                                <td style="color: ${booking.status == 1 ? 'green' : 'red'};">${booking.status == 1 ? 'Completed' : 'Incomplete'}</td>
+                            `;
+                            bookingsTableBody.appendChild(row);
+                        });
+                        bookingsTable.style.display = 'table';
+                        printDetailsLink.style.display = 'block'; // Show the "Print Details" link
                     });
-            
-                    // Save the PDF
-                    doc.save('bookings.pdf');
+            }
+
+            // Event listener for location select change
+            locationSelect.addEventListener('change', function() {
+                const selectedTripId = locationSelect.value;
+                if (selectedTripId) {
+                    fetchBookings(selectedTripId);
+                } else {
+                    bookingsTable.style.display = 'none';
+                    printDetailsLink.style.display = 'none'; // Hide the "Print Details" link
                 }
             });
-            </script>
+
+            // Fetch locations on page load
+            fetchLocations();
+        });
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('tripForm');
+            const locationSelect = document.getElementById('location');
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            const basicAmountInput = document.getElementById('basicAmount');
+            const taxPercentageInput = document.getElementById('taxPercentage');
+            const discountInput = document.getElementById('discount');
+            const participantsInput = document.getElementById('participants');
+            const descriptionInput = document.getElementById('description');
+            const imageInputs = document.querySelectorAll('input[type="file"]');
+
+            // Fetch locations from REST API
+            fetch('https://restcountries.com/v3.1/all')
+                .then(response => response.json())
+                .then(data => {
+                    // Sort countries alphabetically by common name
+                    const sortedCountries = data.sort((a, b) => {
+                        const nameA = a.name.common.toUpperCase();
+                        const nameB = b.name.common.toUpperCase();
+                        if (nameA < nameB) {
+                            return -1;
+                        }
+                        if (nameA > nameB) {
+                            return 1;
+                        }
+                        return 0;
+                    });
+
+                    // Append sorted countries to the select element
+                    sortedCountries.forEach(country => {
+                        const option = document.createElement('option');
+                        option.value = country.name.common;
+                        option.textContent = country.name.common;
+                        locationSelect.appendChild(option);
+                    });
+
+                    // Add a default empty option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = 'Select a country';
+                    defaultOption.selected = true;
+                    defaultOption.disabled = true;
+                    locationSelect.insertBefore(defaultOption, locationSelect.firstChild);
+                });
+
+            // Validation functions
+            function validateLocation() {
+                if (!locationSelect.value) {
+                    locationSelect.classList.add('is-invalid');
+                } else {
+                    locationSelect.classList.remove('is-invalid');
+                }
+            }
+
+            function validateStartDate() {
+                const startDate = new Date(startDateInput.value);
+                const today = new Date();
+                const minStartDate = new Date(today.setDate(today.getDate() + 5));
+                const maxStartDate = new Date(today.setFullYear(today.getFullYear() + 2));
+                if (startDate < minStartDate || startDate > maxStartDate) {
+                    startDateInput.classList.add('is-invalid');
+                } else {
+                    startDateInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateEndDate() {
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+                const minEndDate = new Date(startDate.setDate(startDate.getDate() + 2));
+                const maxEndDate = new Date(startDate.setMonth(startDate.getMonth() + 4));
+                if (endDate < minEndDate || endDate > maxEndDate) {
+                    endDateInput.classList.add('is-invalid');
+                } else {
+                    endDateInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateBasicAmount() {
+                if (!basicAmountInput.value || basicAmountInput.value.length > 7 || basicAmountInput.value < 100) {
+                    basicAmountInput.classList.add('is-invalid');
+                } else {
+                    basicAmountInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateTaxPercentage() {
+                const value = parseFloat(taxPercentageInput.value);
+                if (isNaN(value) || value < 0 || value > 20) {
+                    taxPercentageInput.classList.add('is-invalid');
+                } else {
+                    taxPercentageInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateDiscount() {
+                if (discountInput.value && (discountInput.value < 0 || discountInput.value > 85)) {
+                    discountInput.classList.add('is-invalid');
+                } else {
+                    discountInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateParticipants() {
+                if (!participantsInput.value || participantsInput.value.length > 2) {
+                    participantsInput.classList.add('is-invalid');
+                } else {
+                    participantsInput.classList.remove('is-invalid');
+                }
+            }
+
+            function validateDescription() {
+                if (descriptionInput.value.length < 50 || descriptionInput.value.length > 700) {
+                    descriptionInput.classList.add('is-invalid');
+                } else {
+                    descriptionInput.classList.remove('is-invalid');
+                }
+            }
+
+            function areImagesSame(file1, file2) {
+                return file1 && file2 && file1.name === file2.name && file1.size === file2.size && file1.type === file2.type;
+            }
+
+            function validateImages() {
+                const image1 = imageInputs[0].files[0];
+                const image2 = imageInputs[1].files[0];
+                const image3 = imageInputs[2].files[0];
+
+                imageInputs.forEach(input => {
+                    if (!input.value || !['image/jpeg', 'image/png'].includes(input.files[0].type)) {
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.classList.remove('is-invalid');
+                    }
+                });
+
+                if (areImagesSame(image1, image2) || areImagesSame(image1, image3) || areImagesSame(image2, image3)) {
+                    imageInputs.forEach(input => {
+                        input.classList.add('is-invalid');
+                    });
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Images cannot be the same'
+                    });
+                }
+            }
+
+            // Add keyup event listeners for validation
+            locationSelect.addEventListener('change', validateLocation);
+            startDateInput.addEventListener('keyup', validateStartDate);
+            endDateInput.addEventListener('keyup', validateEndDate);
+            basicAmountInput.addEventListener('keyup', validateBasicAmount);
+            taxPercentageInput.addEventListener('keyup', validateTaxPercentage);
+            discountInput.addEventListener('keyup', validateDiscount);
+            participantsInput.addEventListener('keyup', validateParticipants);
+            descriptionInput.addEventListener('keyup', validateDescription);
+            imageInputs.forEach(input => input.addEventListener('change', validateImages));
+
+            // Set default value for discount
+            discountInput.addEventListener('blur', function() {
+                if (!discountInput.value) {
+                    discountInput.value = 0;
+                }
+            });
+
+            // Form submission validation
+            form.addEventListener('submit', function(event) {
+                validateLocation();
+                validateStartDate();
+                validateEndDate();
+                validateBasicAmount();
+                validateTaxPercentage();
+                validateDiscount();
+                validateParticipants();
+                validateDescription();
+                validateImages();
+
+                if (form.querySelectorAll('.is-invalid').length > 0) {
+                    event.preventDefault();
+                }
+            });
+        });
+
+        function toggleStatus(tripId, currentStatus) {
+            fetch(`/toggle_status/${tripId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: currentStatus })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const newStatus = currentStatus === 0 ? 1 : 0;
+                    const message = newStatus === 0 ? 'Package Activated successfully' : 'Package Deactivated';
+                    const icon = newStatus === 0 ? 'success' : 'warning';
+
+                    Swal.fire({
+                        icon: icon,
+                        title: message
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating status'
+                    });
+                }
+            });
+        }
+
+        function updateTrip(event, tripId, idx) {
+            event.preventDefault();
+            const form = document.getElementById(`updateForm${idx}`);
+            const formData = new FormData(form);
+
+            const tripData = {
+                location: formData.get('location'),
+                start_date: formData.get('start_date'),
+                end_date: formData.get('end_date'),
+                basic_amount: formData.get('basic_amount'),
+                tax_percentage: formData.get('tax_percentage'),
+                discount: formData.get('discount'),
+                participants: formData.get('participants'),
+                description: formData.get('description')
+            };
+
+            fetch(`/update_trip/${tripId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(tripData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Package updated successfully'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error updating package'
+                    });
+                }
+            });
+        }
+    </script>
 </body>
 </html>

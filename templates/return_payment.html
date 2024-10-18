@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Return Payment</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+</head>
+<body>
+    <h1>Processing Return Payment</h1>
+    <p>Please wait while we set up your return payment...</p>
+
+    <script>
+        var stripe = Stripe('pk_test_51OCqKJSDxrkb8ke1OSNhTmkmB3LWaTP5XiPeegCNcC1qhKrrhKw6dFyNCVfcwM0u8JdNR7I0R23JejLeqxmq5IJ600PlWUyyP1'); // Replace with your Stripe publishable key
+
+        $(document).ready(function() {
+            var booking_id = '{{ booking_id }}';
+            var user_id = '{{ session["user_id"] }}';
+
+            $.ajax({
+                url: '/create-return-checkout-session',
+                method: 'POST',
+                data: {
+                    booking_id: booking_id,
+                    user_id: user_id
+                },
+                success: function(response) {
+                    if (response.session_id) {
+                        stripe.redirectToCheckout({ sessionId: response.session_id })
+                            .then(function (result) {
+                                if (result.error) {
+                                    console.error('Stripe error:', result.error);
+                                    alert(result.error.message);
+                                }
+                            });
+                    } else {
+                        console.error('Error creating checkout session:', response.error);
+                        alert("Error creating checkout session: " + (response.error || "Unknown error"));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    var errorMessage = xhr.responseJSON ? xhr.responseJSON.error : "An unexpected error occurred. Please try again later.";
+                    console.error('AJAX error:', status, error, errorMessage);
+                    alert(errorMessage);
+                }
+            });
+        });
+    </script>
+</body>
+</html>

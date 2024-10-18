@@ -146,7 +146,7 @@
             });
 
             submitReview.click(function() {
-                const review = reviewText.val().trim();
+                var review = $('#reviewText').val();
                 $.ajax({
                     url: "{{ url_for('submit_review') }}",
                     method: 'POST',
@@ -159,19 +159,16 @@
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success',
-                                text: 'Review Submitted Successfully',
-                                showConfirmButton: false,
-                                timer: 1500
+                                text: response.message,
                             }).then(function() {
                                 $('#reviewModal').modal('hide');
-                                // Optionally, you can reload the page or update the UI
-                                // location.reload();
+                                location.reload();
                             });
                         } else {
                             Swal.fire({
                                 icon: 'error',
                                 title: 'Error',
-                                text: response.message || 'Failed to submit review. Please try again.'
+                                text: response.message,
                             });
                         }
                     },
