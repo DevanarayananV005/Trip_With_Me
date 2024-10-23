@@ -92,11 +92,11 @@ secret_key = secrets.token_hex(16)
 app.secret_key = secret_key
 
 # Firebase Admin SDK initialization
-cred = credentials.Certificate(r'D:\Project\trip_with_me\tripwithme-db6792-firebase-adminsdk-2itoq-0feea0f265.json')
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(cred, {
-        'storageBucket': 'tripwithme-db6792.appspot.com'
-    })
+firebase_credentials = json.loads(os.environ.get('FIREBASE_CREDENTIALS'))
+cred = credentials.Certificate(firebase_credentials)
+firebase_admin.initialize_app(cred, {
+    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
+})
 
 bucket = storage.bucket()  # Access the bucket
 db = firestore.client()  
