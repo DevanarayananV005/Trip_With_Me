@@ -43,10 +43,6 @@ from reportlab.lib import colors
 #ml code
 # Download NLTK stopwords
 nltk.download('stopwords', quiet=True)
-cred = credentials.Certificate(json.loads(os.environ.get('FIREBASE_CREDENTIALS')))
-firebase_admin.initialize_app(cred, {
-    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
-})
 
 # Load and prepare the ML model
 def load_csv_with_different_encodings(file_path):
