@@ -1,5 +1,6 @@
 import base64
 import datetime
+import json
 import os
 import re
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, url_for, session
@@ -43,6 +44,10 @@ from reportlab.lib import colors
 #ml code
 # Download NLTK stopwords
 nltk.download('stopwords', quiet=True)
+cred = credentials.Certificate(json.loads(os.environ.get('FIREBASE_CREDENTIALS')))
+firebase_admin.initialize_app(cred, {
+    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
+})
 
 # Load and prepare the ML model
 def load_csv_with_different_encodings(file_path):
@@ -100,14 +105,14 @@ db_firestore = firestore.client()   # Access Firestore
 
 # Firebase configuration for Pyrebase
 config = {
-    "apiKey": "AIzaSyBR1xj4iWIRS1YuD_5Cwta7QN00-1UtLN4",
-    "authDomain": "tripwithme-db6792.firebaseapp.com",
-    "projectId": "tripwithme-db6792",
-    "storageBucket": "tripwithme-db6792.appspot.com",
-    "messagingSenderId": "567401440169",
-    "appId": "1:567401440169:web:96885bb3f0859cbff09ab8",
-    "measurementId": "G-WLDG1QFZH3",
-    "databaseURL": "https://tripwithme-db6792-default-rtdb.firebaseio.com/"
+    "apiKey": os.environ.get('FIREBASE_API_KEY'),
+    "authDomain": os.environ.get('FIREBASE_AUTH_DOMAIN'),
+    "projectId": os.environ.get('FIREBASE_PROJECT_ID'),
+    "storageBucket": os.environ.get('FIREBASE_STORAGE_BUCKET'),
+    "messagingSenderId": os.environ.get('FIREBASE_MESSAGING_SENDER_ID'),
+    "appId": os.environ.get('FIREBASE_APP_ID'),
+    "measurementId": os.environ.get('FIREBASE_MEASUREMENT_ID'),
+    "databaseURL": os.environ.get('FIREBASE_DATABASE_URL')
 }
 
 # Initialize Firebase with Pyrebase
@@ -116,7 +121,7 @@ auth = firebase.auth()
 db = firebase.database()
 
 #razorpay secret key
-stripe.api_key = 'sk_test_51OCqKJSDxrkb8ke1nAyVrBC0a8GHM73ixdczaY1acuJs23nGxr0eamRSLHTBxb2O6UeM8LU9vsiUHpKD67R8BwxN00VoItYGe6'
+stripe.api_key = os.environ.get('STRIPE_API_KEY')
 
 # SMTP email configuration
 SMTP_SERVER = 'smtp.gmail.com'
