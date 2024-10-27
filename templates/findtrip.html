@@ -46,33 +46,59 @@
       </head>
     <body style="font-family: 'Courier New', Courier, monospace;background:black;">
       <div class="navbar mt-0 pt-0">
-        <nav class="navbar navbar-expand-lg sticky-top w-100" style="background:black;">
+        <nav class="navbar navbar-expand-lg fixed-top" style="background:black;height: 68px;">
             <div class="container-fluid">
-                <img src="static/images/aes11.png" style="width:50px;height:50px;" alt="Brand Logo">
+                <a class="navbar-brand" href="#home"><image src="static/images/aes11.png" style="width:50px;height:50px;"></a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}">Home</a>
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#home">Home</a>
                         </li>
-                        <li class="nav-item"></li>
-                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('scheduletrip') }}" target="__blank">Schedule Trip</a>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" onclick="handleScheduleTrip()">Schedule Trip</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" onclick="handleFindTrip()">Find Trip</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#about">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#packages">Packages</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#contact">Contact</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('bookings')}}">Bookings</a>
+                        </li>
+                        {% if session.get('user') %}
+                        <!-- <li class="nav-item" style="margin-left: 650px;">
+                        <p>{{user_name}}</p></li> -->
+                        <li class="nav-item" style="margin-left: 665px;">
+                            
+                            <a id="notification" class="notification-icon no-message" href="{{ url_for('notifications') }}">
+                                <i class="fas fa-bell"></i>
+                            </a>
+                            
+                            <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-left: 20px;">
+                            <ul  style=" margin-left: 1350px;" class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('logout') }}">LogOut</a></li>
+                                <li><a class="dropdown-item"  href="{{ url_for('updateuser') }}">Account Info</a></li>
+                              </ul>
+                        </li>
+                        {% else %}
+                        <li class="nav-item" style=" margin-left: 725px;">
+                            <a class="nav-link" style="color:white;" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" style="color:white;" href="{{ url_for('register') }}">Register</a>
+                        </li>
+                        {% endif %}
                     </ul>
-                        
-                    <li class="nav-item" style="margin-left: 800px;">
-                        <a id="notification" class="notification-icon no-message" href="{{ url_for('notifications') }}">
-                            <i class="fas fa-bell"></i>
-                        </a>
-                        
-                        <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-left: 20px;">
-                        <ul style="margin-left: 1435px;" class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ url_for('logout') }}">LogOut</a></li>
-                            <li><a class="dropdown-item" href="{{ url_for('updateuser') }}">Account Info</a></li>
-                        </ul>
-                    </li>
                 </div>
             </div>
         </nav>
@@ -144,6 +170,7 @@
       </div>
   </div>
 {% endfor %}
+
 
 
 

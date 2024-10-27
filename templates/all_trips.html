@@ -80,16 +80,28 @@
                     <li class="nav-item">
                         <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('findtrip') }}">Find Trip</a>
                     </li>
-                    <li class="nav-item" style="margin-left: 248px;">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#about">About</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#packages">Packages</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('index') }}#contact">Contact</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" style="color:white;" href="{{ url_for('bookings')}}">Bookings</a>
+                    </li>
+                    <li class="nav-item">
                 <form class="d-flex">
                     <input align="center" class="form-control me-2" type="search" placeholder="Search" aria-label="Search" id="searchInput">
                     <button class="btn btn-outline-success" type="submit">Search</button>
                 </form>
                     </li>
                     <li class="nav-item" style="margin-left: 452px;">
-                        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
-                            <i class="fas fa-filter"></i> <!-- Assuming FontAwesome is used for icons -->
-                        </button>
+                        <!-- <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <i class="fas fa-filter"></i>
+                        </button> -->
                     </li>
                 <li class="nav-item" style="margin-left: 20px;">
                     <img src="{{ url_for('static', filename='images/' + user_image) }}" data-bs-toggle="dropdown" aria-expanded="false" alt="Logout" style="cursor: pointer; width: 40px; height: 40px;border-radius: 50%;margin-right: 0px;">

@@ -13,7 +13,6 @@ import firebase_admin
 from firebase_admin import credentials, firestore, storage
 import string
 import cv2
-import numpy as np
 from flask import Response
 from datetime import datetime, timedelta
 import itertools
@@ -463,6 +462,10 @@ def reset_password_confirm():
 @app.route('/scheduletrip', methods=['GET', 'POST'])
 def scheduletrip():
     if 'user' in session:
+        user_id = session['user_id']
+        # Fetch user data from the database
+        pers_det = db.child("per_det").child(user_id).get().val()
+        user_image = pers_det.get('image', 'default_image.jpg') 
         if request.method == 'POST':
             user_id = session['user_id']
             destination = request.form.get('destination')
@@ -492,7 +495,7 @@ def scheduletrip():
                 return redirect(url_for('scheduletrip'))
         else:
             # Render the schedule trip form on GET request
-            return render_template('scheduletrip.html')
+            return render_template('scheduletrip.html', user_image=user_image)
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
