@@ -43,10 +43,6 @@ from reportlab.lib import colors
 #ml code
 # Download NLTK stopwords
 nltk.download('stopwords', quiet=True)
-cred = credentials.Certificate(json.loads(os.environ.get('FIREBASE_CREDENTIALS')))
-firebase_admin.initialize_app(cred, {
-    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
-})
 
 # Load and prepare the ML model
 def load_csv_with_different_encodings(file_path):
@@ -92,11 +88,11 @@ secret_key = secrets.token_hex(16)
 app.secret_key = secret_key
 
 # Firebase Admin SDK initialization
-cred = credentials.Certificate(r'D:\Project\trip_with_me\tripwithme-db6792-firebase-adminsdk-2itoq-0feea0f265.json')
-if not firebase_admin._apps:
-    firebase_admin.initialize_app(cred, {
-        'storageBucket': 'tripwithme-db6792.appspot.com'
-    })
+firebase_credentials = json.loads(os.environ.get('FIREBASE_CREDENTIALS'))
+cred = credentials.Certificate(firebase_credentials)
+firebase_admin.initialize_app(cred, {
+    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
+})
 
 bucket = storage.bucket()  # Access the bucket
 db = firestore.client()  
@@ -2163,4 +2159,5 @@ def logout():
     return redirect(url_for('login')) 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get('PORT', 5000))  # Use PORT environment variable if available, otherwise default to 5000
+    app.run(host='0.0.0.0', port=port)
