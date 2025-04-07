@@ -1,6 +1,5 @@
 import base64
 import datetime
-import json
 import os
 import re
 from flask import Flask, flash, jsonify, make_response, redirect, render_template, request, url_for, session
@@ -13,10 +12,12 @@ import firebase_admin
 from firebase_admin import credentials, firestore, storage
 import string
 import cv2
+import numpy as np
 from flask import Response
 from datetime import datetime, timedelta
 import itertools
 import random
+import qrcode
 from jinja2 import Environment, FileSystemLoader
 import math
 import stripe
@@ -39,6 +40,7 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable, PageBreak
 from reportlab.lib import colors
+from sklearn.metrics.pairwise import cosine_similarity
 
 #ml code
 # Download NLTK stopwords
@@ -88,11 +90,11 @@ secret_key = secrets.token_hex(16)
 app.secret_key = secret_key
 
 # Firebase Admin SDK initialization
-firebase_credentials = json.loads(os.environ.get('FIREBASE_CREDENTIALS'))
-cred = credentials.Certificate(firebase_credentials)
-firebase_admin.initialize_app(cred, {
-    'storageBucket': os.environ.get('FIREBASE_STORAGE_BUCKET')
-})
+cred = credentials.Certificate(r'D:\Project\trip_with_me\tripwithme-db6792-firebase-adminsdk-2itoq-0feea0f265.json')
+if not firebase_admin._apps:
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'tripwithme-db6792.appspot.com'
+    })
 
 bucket = storage.bucket()  # Access the bucket
 db = firestore.client()  
@@ -100,14 +102,14 @@ db_firestore = firestore.client()   # Access Firestore
 
 # Firebase configuration for Pyrebase
 config = {
-    "apiKey": os.environ.get('FIREBASE_API_KEY'),
-    "authDomain": os.environ.get('FIREBASE_AUTH_DOMAIN'),
-    "projectId": os.environ.get('FIREBASE_PROJECT_ID'),
-    "storageBucket": os.environ.get('FIREBASE_STORAGE_BUCKET'),
-    "messagingSenderId": os.environ.get('FIREBASE_MESSAGING_SENDER_ID'),
-    "appId": os.environ.get('FIREBASE_APP_ID'),
-    "measurementId": os.environ.get('FIREBASE_MEASUREMENT_ID'),
-    "databaseURL": os.environ.get('FIREBASE_DATABASE_URL')
+    "apiKey": "AIzaSyBR1xj4iWIRS1YuD_5Cwta7QN00-1UtLN4",
+    "authDomain": "tripwithme-db6792.firebaseapp.com",
+    "projectId": "tripwithme-db6792",
+    "storageBucket": "tripwithme-db6792.appspot.com",
+    "messagingSenderId": "567401440169",
+    "appId": "1:567401440169:web:96885bb3f0859cbff09ab8",
+    "measurementId": "G-WLDG1QFZH3",
+    "databaseURL": "https://tripwithme-db6792-default-rtdb.firebaseio.com/"
 }
 
 # Initialize Firebase with Pyrebase
@@ -116,7 +118,7 @@ auth = firebase.auth()
 db = firebase.database()
 
 #razorpay secret key
-stripe.api_key = os.environ.get('STRIPE_API_KEY')
+stripe.api_key = 'sk_test_51OCqKJSDxrkb8ke1nAyVrBC0a8GHM73ixdczaY1acuJs23nGxr0eamRSLHTBxb2O6UeM8LU9vsiUHpKD67R8BwxN00VoItYGe6'
 
 # SMTP email configuration
 SMTP_SERVER = 'smtp.gmail.com'
@@ -783,44 +785,102 @@ def upgrade_account():
     if 'user' in session:
         user_id = session['user_id']
         if request.method == 'POST':
-            company_name = request.form['company_name']
-            company_number = request.form['company_number']
-            company_email = request.form['company_email']
-            state = request.form['state']
-            district = request.form['district']
-            company_begin_date = request.form['company_begin_date']
-            ownership_certificate = request.files['ownership_certificate']
-            
-            # Save the ownership certificate
-            certificate_filename = f"{user_id}_{ownership_certificate.filename}"
-            certificate_path = os.path.join('static', 'images', certificate_filename)
-            ownership_certificate.save(certificate_path)
-            
-            # Generate OTP
-            otp = random.randint(100000, 999999)
-            
-            # Store data in the database
-            package_manager_data = {
-                "c_name": company_name,
-                "c_phone": company_number,
-                "c_email": company_email,
-                "state": state,
-                "district": district,
-                "c_startdate": company_begin_date,
-                "c_ownership": certificate_filename,
-                "status": 0,
-                "e_status": 0,
-                "user_id": user_id,
-                "otp": otp
-            }
-            db.child("package_manager").child(user_id).set(package_manager_data)
-            
-            # Send OTP email
-            send_otp_email(company_email, otp)
-            
-            # Show success alert and redirect to OTP verification page
-            flash('Data entered successfully to database. An OTP is sent to the given email. Verify the email.', 'success')
-            return redirect(url_for('verify_otp_page'))
+            if 'driver_name' in request.form:  # Driver form submission
+                try:
+                    driver_name = request.form['driver_name']
+                    vehicle_state = request.form['vehicle_state']
+                    rto = request.form['rto']
+                    licence_number = request.form['licence_number']
+                    vehicle_number = request.form['vehicle_number']
+                    
+                    # Save images
+                    rc_image = request.files['rc_image']
+                    licence_image = request.files['licence_image']
+                    rc_filename = f"{user_id}_rc_{rc_image.filename}"
+                    licence_filename = f"{user_id}_licence_{licence_image.filename}"
+                    rc_image.save(os.path.join('static', 'images', rc_filename))
+                    licence_image.save(os.path.join('static', 'images', licence_filename))
+                    
+                    # Generate OTP
+                    otp = random.randint(100000, 999999)
+                    
+                    # Store driver data
+                    driver_data = {
+                        "name": driver_name,
+                        "vehicle_state": vehicle_state,
+                        "rto": rto,
+                        "licence_number": licence_number,
+                        "vehicle_number": vehicle_number,
+                        "rc_image": rc_filename,
+                        "licence_image": licence_filename,
+                        "status": 0,
+                        "e_status": 0,
+                        "f_status":0,
+                        "user_id": user_id,
+                        "otp": otp
+                    }
+                    
+                    # Save to Firebase
+                    db.child("driver").child(user_id).set(driver_data)
+                    
+                    # Update user role
+                    db.child("users").child(user_id).update({"role": 2})  # 2 for driver role
+                    
+                    # Send OTP email
+                    user = db.child("users").child(user_id).get().val()
+                    send_otp_email(user.get('email'), otp)
+                    
+                    # Return success response for SweetAlert
+                    return jsonify({
+                        'status': 'success',
+                        'message': 'Driver Request Successful! You will be able to login after admin approval.',
+                        'redirect': url_for('login')
+                    })
+
+                except Exception as e:
+                    return jsonify({
+                        'status': 'error',
+                        'message': f'Error: {str(e)}'
+                    })
+
+            else:  # Package manager form submission
+                company_name = request.form['company_name']
+                company_number = request.form['company_number']
+                company_email = request.form['company_email']
+                state = request.form['state']
+                district = request.form['district']
+                company_begin_date = request.form['company_begin_date']
+                ownership_certificate = request.files['ownership_certificate']
+                
+                # Save the ownership certificate
+                certificate_filename = f"{user_id}_{ownership_certificate.filename}"
+                certificate_path = os.path.join('static', 'images', certificate_filename)
+                ownership_certificate.save(certificate_path)
+                
+                # Generate OTP
+                otp = random.randint(100000, 999999)
+                
+                # Store data in the database
+                package_manager_data = {
+                    "c_name": company_name,
+                    "c_phone": company_number,
+                    "c_email": company_email,
+                    "state": state,
+                    "district": district,
+                    "c_startdate": company_begin_date,
+                    "c_ownership": certificate_filename,
+                    "status": 0,
+                    "e_status": 0,
+                    "user_id": user_id,
+                    "otp": otp
+                }
+                db.child("package_manager").child(user_id).set(package_manager_data)
+                
+                # Send OTP email
+                send_otp_email(company_email, otp)
+                
+                flash('Data entered successfully to database. An OTP is sent to the given email. Verify the email.', 'success')
+                return redirect(url_for('verify_otp_page'))
         
         return render_template('upgrade_account.html')
     else:
@@ -853,6 +913,18 @@ def verify_otp_page():
     else:
         flash('User not logged in.', 'danger')
         return redirect(url_for('login'))
+CAR_RATE_CONFIG = {
+    "hatchback": {"base_rate": 70, "extra_km_rate": 30},
+    "sedan": {"base_rate": 80, "extra_km_rate": 35},
+    "premium_sedan": {"base_rate": 90, "extra_km_rate": 45},
+    "suv": {"base_rate": 95, "extra_km_rate": 45},
+    "premium_suv": {"base_rate": 100, "extra_km_rate": 50},
+    "crossover": {"base_rate": 70, "extra_km_rate": 30},
+    "compact_suv": {"base_rate": 80, "extra_km_rate": 35},
+    "micro_suv": {"base_rate": 70, "extra_km_rate": 30},
+    "mpv": {"base_rate": 95, "extra_km_rate": 45},
+    "premium_mpv": {"base_rate": 110, "extra_km_rate": 60}
+}
 
 @app.route('/submit_review', methods=['POST'])
 def submit_review():
@@ -1154,7 +1226,24 @@ def admin():
         # Debug print for package_manager_data
         print("Package Manager Data:", package_manager_data)
 
-        return render_template('admin.html', log_data=processed_log_data, user_data=user_data, scheduled_trips=scheduled_trips, confirmed_trips=confirmed_trips, package_manager_data=package_manager_data, enumerate=enumerate)
+        # Fetch driver data
+        drivers = db.child("driver").get().val()
+        driver_data = []
+        if drivers:
+            for user_id, driver in drivers.items():
+                driver_data.append({
+                    'user_id': user_id,
+                    'name': driver.get('name', 'Unknown'),
+                    'vehicle_state': driver.get('vehicle_state', 'Unknown'),
+                    'rto': driver.get('rto', 'Unknown'),
+                    'licence_number': driver.get('licence_number', 'Unknown'),
+                    'vehicle_number': driver.get('vehicle_number', 'Unknown'),
+                    'licence_image': driver.get('licence_image', ''),
+                    'rc_image': driver.get('rc_image', ''),
+                    'status': driver.get('status', 0)
+                })
+
+        return render_template('admin.html', log_data=processed_log_data, user_data=user_data, scheduled_trips=scheduled_trips, confirmed_trips=confirmed_trips, package_manager_data=package_manager_data, driver_data=driver_data, enumerate=enumerate)
     else:
         flash('You do not have permission to access this page.', 'danger')
         return redirect(url_for('login'))
@@ -1262,6 +1351,55 @@ def send_approval_email(to_email):
         print(f'Email sent to {to_email}')
     except Exception as e:
         print(f'Error sending email: {str(e)}')
+
+# Add this new function to send driver activation email
+def send_driver_activation_email(to_email):
+    subject = 'Driver Account Activated'
+    body = '''
+    Congratulations! Your driver account has been successfully activated.
+    
+    You can now log in to your driver platform and start accepting ride requests.
+    
+    Welcome to Trip With Me - We look forward to having you as part of our driver community!
+    '''
+    
+    msg = MIMEMultipart()
+    msg['From'] = SMTP_USERNAME
+    msg['To'] = to_email
+    msg['Subject'] = subject
+    
+    msg.attach(MIMEText(body, 'plain'))
+    
+    try:
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USERNAME, SMTP_PASSWORD)
+        text = msg.as_string()
+        server.sendmail(SMTP_USERNAME, to_email, text)
+        server.quit()
+        print(f'Driver activation email sent to {to_email}')
+    except Exception as e:
+        print(f'Error sending email: {str(e)}')
+
+# Update the existing route to include email notification
+@app.route('/update_driver_status/<user_id>/<int:new_status>', methods=['POST'])
+def update_driver_status(user_id, new_status):
+    if 'user_id' in session and session['user_id'] == 'admin':
+        try:
+            # Update driver status
+            db.child("driver").child(user_id).update({"status": new_status})
+            
+            # If status is being set to active (1), send activation email
+            if new_status == 1:
+                # Get user email from users collection
+                user_data = db.child("users").child(user_id).get().val()
+                if user_data and 'email' in user_data:
+                    send_driver_activation_email(user_data['email'])
+            
+            return jsonify({"success": True})
+        except Exception as e:
+            return jsonify({"success": False, "error": str(e)})
+    return jsonify({"success": False, "error": "Unauthorized access"})
 
 #all_trips page
 @app.route('/all_trips')
@@ -1525,6 +1663,7 @@ def payment_success(booking_id):
         flash('There was an error processing your payment. Please contact support.', 'danger')
 
     return redirect(url_for('index'))
+
 def snd_email(to_email, subject, body):
     msg = MIMEMultipart()
     msg['From'] = SMTP_USERNAME
@@ -1569,51 +1708,46 @@ def login():
         try:
             user = auth.sign_in_with_email_and_password(email, password)
             user_data = db.child("users").child(user['localId']).get().val()
+            
             status = user_data.get('status')
             role = user_data.get('role')
-            c_status = user_data.get('c_status')
-
-            if status == 4:
-                flash('Your account is temporarily deactivated.', 'danger')
-                return redirect(url_for('login'))
-
+            
             session['user'] = user
             session['user_id'] = user['localId']
 
-            # Capture current date and time
+            # Log entry
             now = datetime.now()
-            login_date = now.strftime("%Y-%m-%d")
-            login_time = now.strftime("%H:%M:%S")
-
-            # Create a log entry in Firebase
             log_entry = {
-                "user_id": user['localId'],  # Use actual user_id
-                "login_time": login_time,
-                "login_date": login_date
+                "user_id": user['localId'],
+                "login_time": now.strftime("%H:%M:%S"),
+                "login_date": now.strftime("%Y-%m-%d")
             }
-
-            # Push the log entry and get the log entry ID
             db.child("log_data").push(log_entry)
 
+            # Simple driver check
+            driver_data = db.child("driver").child(user['localId']).get().val()
+            # Rest of the conditions remain same
             if status == 0 and role == 0:
                 return redirect(url_for('pers_det'))
-            elif status == 1 and role ==0:
+            elif status == 1 and role == 0:
                 return redirect(url_for('photopik'))
-            elif status == 2 and role ==0:
+            elif status == 2 and role == 0:
                 return redirect(url_for('index'))
-            elif role == 1 and c_status == 1:
+            elif role == 1 and user_data.get('c_status') == 1:
                 return redirect(url_for('pack_manager'))
-            elif role == 1 and c_status == 0:
+            elif role == 1 and user_data.get('c_status') == 0:
                 flash('Sorry, your account is not approved yet.', 'warning')
                 return redirect(url_for('login'))
-            elif role == 0:
-                return redirect(url_for('index'))
-        except Exception as e:
-            error_message = str(e)
-            if "INVALID_PASSWORD" in error_message or "EMAIL_NOT_FOUND" in error_message:
-                flash('Wrong credentials, please try again.', 'danger')
+            elif role==2 and driver_data.get('status')==1:
+                return redirect(url_for('driver_dashboard'))
+            elif role==2 and driver_data.get('status')==0:
+                flash('Sorry, your account is not approved yet.', 'warning')
+                return redirect(url_for('login'))
             else:
-                flash(f'Wrong credentials, please try again.', 'danger')
+                return redirect(url_for('index'))
+
+        except Exception as e:
+            flash('Invalid email or password', 'danger')
             return redirect(url_for('login'))
 
     return render_template('login.html')
@@ -2154,10 +2288,888 @@ def calculate_return_amount(booking, trip):
 
 @app.route('/logout')
 def logout():
-    session.clear()  # Clear the session
-    flash('You have been logged out!', 'info')
-    return redirect(url_for('login')) 
+    if 'user_id' in session:
+        user_id = session['user_id']
+        try:
+            # Update driver status to 0 when logging out
+            db.child("driver").child(user_id).update({
+                "e_status": 0,
+                "last_status_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            })
+        except Exception as e:
+            print(f"Error updating status on logout: {str(e)}")
+    
+    session.clear()
+    return redirect(url_for('login'))
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))  # Use PORT environment variable if available, otherwise default to 5000
-    app.run(host='0.0.0.0', port=port)
+@app.route('/driver_dashboard')
+def driver_dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    
+    try:
+        # Check driver's f_status
+        driver = db.child("driver").child(user_id).get().val()
+        f_status = driver.get('f_status', 0) if driver else 0
+        
+        # Get current year for manufacturing year dropdown
+        current_year = datetime.now().year
+        
+        # Car companies list
+        car_companies = [
+            "Maruti Suzuki", "Hyundai", "Tata Motors", "Mahindra", "Toyota", 
+            "Honda", "Kia", "MG", "Volkswagen", "Skoda", "Ford", "Renault",
+            "Nissan", "BMW", "Mercedes-Benz", "Audi", "Volvo", "Jeep",
+            "Land Rover", "Porsche", "Jaguar", "Mini", "Lexus"
+        ]
+
+        # Create structured driver data
+        driver_data = {
+            'name': driver.get('name', 'Driver'),
+            'vehicle': {
+                'model': driver.get('car_model', 'Not Set'),
+                'number': driver.get('car_number', 'Not Set')
+            },
+            'stats': {
+                'earnings': driver.get('today_earnings', 0),
+                'total_earnings': driver.get('total_earnings', 0),
+                'trips': driver.get('today_trips', 0),
+                'rating': driver.get('rating', 4.5)
+            },
+            'earnings_chart': {
+                'labels': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                'data': [2100, 1800, 2400, 1900, 2800, 3100, 2500]  # Dummy data
+            },
+            'trips_chart': {
+                'labels': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                'data': [5, 4, 6, 3, 7, 8, 5]  # Dummy data
+            },
+            'current_location': {
+                'lat': driver.get('current_lat', 10.0261),
+                'lng': driver.get('current_lng', 76.3125)
+            }
+        }
+        
+        return render_template('driver_dashboard.html', 
+                             f_status=f_status,
+                             car_companies=car_companies,
+                             current_year=current_year,
+                             driver_data=driver_data)
+    except Exception as e:
+        print(f"Error in driver_dashboard: {str(e)}")
+        return f"Error: {str(e)}", 500
+
+@app.route('/submit_car_details', methods=['POST'])
+def submit_car_details():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        user_id = session['user_id']
+        car_type = request.form.get('car_type')
+        
+        # Get rate configuration for the car type
+        rate_config = CAR_RATE_CONFIG.get(car_type.lower())
+        if not rate_config:
+            return jsonify({'success': False, 'message': 'Invalid car type'}), 400
+        
+        # Get form data
+        car_company = request.form.get('car_company')
+        car_model = request.form.get('car_model')
+        manufacturing_year = request.form.get('manufacturing_year')
+        seating_capacity = request.form.get('seating_capacity')
+        
+        # Handle file uploads
+        car_photos = []
+        for i in range(1, 4):
+            photo = request.files.get(f'car_photo_{i}')
+            if photo:
+                filename = f"{user_id}_car_{i}_{photo.filename}"
+                photo.save(os.path.join('static/images/cars', filename))
+                car_photos.append(filename)
+        
+        # Save to database
+        car_data = {
+            "user_id": user_id,
+            "car_company": car_company,
+            "car_model": car_model,
+            "car_type": car_type,
+            "manufacturing_year": manufacturing_year,
+            "seating_capacity": seating_capacity,
+            "car_photos": car_photos,
+            "base_rate": rate_config['base_rate'],
+            "extra_km_rate": rate_config['extra_km_rate'],
+            "updated_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "status":0
+        }
+        
+        db.child("cars").child(user_id).set(car_data)
+        
+        # Update f_status in driver collection
+        db.child("driver").child(user_id).update({"f_status": 1})
+        
+        return jsonify({'success': True, 'message': 'Car details saved successfully'})
+    except Exception as e:
+        print(f"Error submitting car details: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+
+@app.route('/get_vehicle_info')
+def get_vehicle_info():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        user_id = session['user_id']
+        car_data = db.child("cars").child(user_id).get().val()
+        
+        if car_data:
+            return jsonify({
+                'success': True,
+                'data': car_data
+            })
+        return jsonify({'error': 'No vehicle information found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/update_vehicle_info', methods=['POST'])
+def update_vehicle_info():
+    if 'user_id' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    try:
+        user_id = session['user_id']
+        car_type = request.form.get('car_type')
+        
+        # Get rate configuration for the car type
+        rate_config = CAR_RATE_CONFIG.get(car_type.lower())
+        if not rate_config:
+            return jsonify({'success': False, 'message': 'Invalid car type'}), 400
+        
+        # Get form data
+        car_company = request.form.get('car_company')
+        car_model = request.form.get('car_model')
+        manufacturing_year = request.form.get('manufacturing_year')
+        seating_capacity = request.form.get('seating_capacity')
+        
+        # Get current car data to preserve existing photos if no new ones are uploaded
+        current_car_data = db.child("cars").child(user_id).get().val()
+        car_photos = current_car_data.get('car_photos', []) if current_car_data else []
+        
+        # Handle new photo uploads
+        for i in range(1, 4):
+            if f'car_photo_{i}' in request.files:
+                photo = request.files[f'car_photo_{i}']
+                if photo and photo.filename:
+                    # Generate unique filename
+                    filename = f"{user_id}_car_{i}_{secure_filename(photo.filename)}"
+                    photo.save(os.path.join('static/images/cars', filename))
+                    # Update the photo in the list
+                    if len(car_photos) >= i:
+                        car_photos[i-1] = filename
+                    else:
+                        car_photos.append(filename)
+        
+        # Update car data
+        update_data = {
+            "car_company": car_company,
+            "car_model": car_model,
+            "car_type": car_type,
+            "manufacturing_year": manufacturing_year,
+            "seating_capacity": seating_capacity,
+            "car_photos": car_photos,
+            "base_rate": rate_config['base_rate'],
+            "extra_km_rate": rate_config['extra_km_rate'],
+            "updated_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        # Update in database
+        db.child("cars").child(user_id).update(update_data)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Vehicle information updated successfully',
+            'data': update_data
+        })
+    except Exception as e:
+        print(f"Error updating vehicle info: {str(e)}")  # For debugging
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/update_driver_location', methods=['POST'])
+def update_driver_location():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        user_id = session['user_id']
+        data = request.json
+        current_time = datetime.now()
+        
+        # Update location in database
+        update_data = {
+            "current_lat": data['lat'],
+            "current_lng": data['lng'],
+            "last_location_update": current_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "is_online": True  # Add online status
+        }
+        
+        db.child("driver").child(user_id).update(update_data)
+        
+        print(f"Location updated for driver {user_id} at {current_time}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Location updated successfully',
+            'timestamp': current_time.strftime("%Y-%m-%d %H:%M:%S")
+        })
+        
+    except Exception as e:
+        error_message = f"Error updating location: {str(e)}"
+        print(error_message)  # For debugging
+        return jsonify({'success': False, 'message': error_message}), 500
+
+@app.route('/update_driver_live_status', methods=['POST'])
+def update_driver_live_status():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        user_id = session['user_id']
+        data = request.json
+        status = data.get('status')
+        
+        # Update status in database
+        db.child("driver").child(user_id).update({
+            "e_status": status,
+            "last_status_update": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Status updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating status: {str(e)}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+# Add this function to calculate average rating
+def get_driver_rating(driver_id):
+    try:
+        # Get all ratings for the driver
+        ratings = db.child("ratings").child(driver_id).get().val()
+        
+        if not ratings:
+            # If no ratings exist, create default 5-star rating from Admin
+            default_rating = {
+                "rating": 5,
+                "rater_id": "Admin",
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            }
+            db.child("ratings").child(driver_id).push(default_rating)
+            return 5.0
+        
+        # Calculate average rating
+        total_rating = 0
+        count = 0
+        for rating in ratings.values():
+            total_rating += float(rating['rating'])
+            count += 1
+        
+        return round(total_rating / count, 1)
+    except Exception as e:
+        print(f"Error calculating rating: {str(e)}")
+        return 5.0  # Return default rating on error
+
+@app.route('/get_driver_ratings', methods=['GET'])
+def get_driver_ratings():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        driver_id = session['user_id']
+        ratings = db.child("ratings").child(driver_id).get().val()
+        average_rating = get_driver_rating(driver_id)
+        
+        return jsonify({
+            'success': True,
+            'ratings': ratings if ratings else {},
+            'average_rating': average_rating
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/available_cabs')
+def available_cabs():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    try:
+        # Get user data from database
+        user_id = session['user']
+        user_data = db.child("users").child(user_id).get().val()
+        
+        # Get user image, use default if not found
+        user_image = user_data.get('photo', 'default.jpg') if user_data else 'default.jpg'
+        
+        return render_template('available_cabs.html', user_image=user_image)
+    except Exception as e:
+        print(f"Error loading available cabs: {str(e)}")
+        # Use default image if there's an error
+        return render_template('available_cabs.html', user_image='default.jpg')
+
+@app.route('/get_nearby_drivers')
+def get_nearby_drivers():
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+        
+    try:
+        lat = float(request.args.get('lat'))
+        lng = float(request.args.get('lng'))
+        
+        # Get all drivers
+        drivers = db.child("driver").get().val()
+        nearby_drivers = []
+        
+        if drivers:
+            for driver_id, driver in drivers.items():
+                # Check if driver is active and available
+                if driver.get('e_status') == 1:
+                    # Calculate distance
+                    driver_lat = float(driver.get('current_lat', 0))
+                    driver_lng = float(driver.get('current_lng', 0))
+                    distance = calculate_distance(lat, lng, driver_lat, driver_lng)
+                    
+                    if distance <= 2:  # Within 2km radius
+                        # Get car and rating info
+                        car_info = db.child("cars").child(driver_id).get().val()
+                        rating = get_driver_rating(driver_id)
+                        
+                        driver_data = {
+                            'id': driver_id,
+                            'name': driver.get('name', 'Unknown'),
+                            'photo': driver.get('photo', 'default.jpg'),
+                            'rating': rating,
+                            'car_company': car_info.get('car_company'),
+                            'car_model': car_info.get('car_model'),
+                            'car_type': car_info.get('car_type'),
+                            'car_photo': car_info.get('car_photos', [])[0],
+                            'distance': round(distance, 1),
+                            'base_rate': car_info.get('base_rate'),
+                            'extra_km_rate': car_info.get('extra_km_rate')
+                        }
+                        nearby_drivers.append(driver_data)
+        
+        return jsonify({
+            'success': True,
+            'drivers': nearby_drivers
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+def calculate_distance(lat1, lon1, lat2, lon2):
+    # Haversine formula to calculate distance between two points
+    R = 6371  # Earth's radius in kilometers
+    
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    
+    a = math.sin(dlat/2) * math.sin(dlat/2) + \
+        math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * \
+        math.sin(dlon/2) * math.sin(dlon/2)
+    
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    distance = R * c
+    
+    return distance
+
+@app.route('/book_trip', methods=['POST'])
+def book_trip():
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'Please login first'})
+    
+    try:
+        data = request.json
+        
+        # Create a new booking entry in the database
+        booking_ref = db.child("cab_bookings").push({
+            'user_id': session['user_id'],
+            'driver_id': data['driver_id'],
+            'from_location': data['from_location'],
+            'to_location': data['to_location'],
+            'booking_time': data['booking_time'],
+            'trip_amount': data['trip_amount'],
+            'booking_status': 0,  # "0" for pending
+            'trip_status': 0, # "0" for not started
+            'payment_status': 0
+        })
+        
+        if booking_ref:
+            return jsonify({'success': True, 'booking_id': booking_ref['name']})
+        else:
+            return jsonify({'success': False, 'message': 'Failed to create booking'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/get_active_trips')
+def get_active_trips():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        driver_id = session['user_id']
+        
+        # Get active bookings for this driver
+        bookings = db.child("cab_bookings").order_by_child("driver_id").equal_to(driver_id).get().val()
+        active_trips = []
+        
+        if bookings:
+            for booking_id, booking in bookings.items():
+                # Check if booking is active (status 0 or 1)
+                if booking.get('booking_status') in [0, 1] and booking.get('trip_status') in [0, 1]:
+                    # Get user details
+                    user_id = booking.get('user_id')
+                    user = db.child("users").child(user_id).get().val()
+                    user_details = db.child("per_det").child(user_id).get().val()
+                    
+                    trip_data = {
+                        'booking_id': booking_id,
+                        'user_name': user.get('name', 'Unknown'),
+                        'user_image': user_details.get('image', 'default.jpg') if user_details else 'default.jpg',
+                        'from_location': booking.get('from_location'),
+                        'to_location': booking.get('to_location'),
+                        'booking_time': booking.get('booking_time'),
+                        'trip_amount': booking.get('trip_amount'),
+                        'booking_status': booking.get('booking_status'),
+                        'trip_status': booking.get('trip_status'),
+                        'payment_status': booking.get('payment_status', 0)
+                    }
+                    active_trips.append(trip_data)
+        
+        return jsonify({
+            'success': True,
+            'trips': active_trips
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+@app.route('/get_driver_trips')
+def get_driver_trips():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+    
+    try:
+        driver_id = session['user_id']
+        
+        # Get all cab bookings
+        all_bookings = db.child("cab_bookings").get().val()
+        if not all_bookings:
+            return jsonify({'success': True, 'trips': []})
+        
+        # Filter bookings for this driver
+        trips = []
+        for booking_id, booking in all_bookings.items():
+            if booking.get('driver_id') == driver_id:
+                # Get user details
+                user_id = booking.get('user_id')
+                user_data = db.child("users").child(user_id).get().val()
+                user_details = db.child("per_det").child(user_id).get().val()
+                
+                trip_data = {
+                    'booking_id': booking_id,
+                    'user_id': user_id,
+                    'user_name': user_data.get('name', 'Unknown User') if user_data else 'Unknown User',
+                    'user_image': user_details.get('image', 'default.jpg') if user_details else 'default.jpg',
+                    'from_location': booking.get('from_location'),
+                    'to_location': booking.get('to_location'),
+                    'trip_amount': booking.get('trip_amount'),
+                    'booking_time': booking.get('booking_time'),
+                    'booking_status': booking.get('booking_status', 0),
+                    'trip_status': booking.get('trip_status', 0),
+                    'payment_status': booking.get('payment_status', 0)
+                }
+                trips.append(trip_data)
+        
+        # Sort trips by booking time, most recent first
+        trips.sort(key=lambda x: x.get('booking_time', ''), reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'trips': trips
+        })
+        
+    except Exception as e:
+        print(f"Error fetching trips: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+@app.route('/update_trip_status', methods=['POST'])
+def update_trip_status():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+    
+    try:
+        data = request.json
+        booking_id = data.get('booking_id')
+        new_status = data.get('status')
+        
+        if not booking_id or new_status is None:
+            return jsonify({'success': False, 'error': 'Missing required data'})
+        
+        # Update the booking status in the database
+        db.child("cab_bookings").child(booking_id).update({
+            'trip_status': new_status
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Trip status updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating trip status: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/update_payment_status', methods=['POST'])
+def update_payment_status():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        data = request.json
+        booking_id = data.get('booking_id')
+        payment_status = data.get('payment_status')
+        
+        if not booking_id:
+            return jsonify({'success': False, 'message': 'Missing booking ID'}), 400
+        
+        # Update the payment status in the database
+        db.child("cab_bookings").child(booking_id).update({
+            'payment_status': payment_status
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment status updated successfully'
+        })
+        
+    except Exception as e:
+        print(f"Error updating payment status: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': f'Error updating payment status: {str(e)}'
+        }), 500
+@app.route('/get_user_trips')
+def get_user_trips():
+    if 'user_id' not in session:  # Change this according to your session key
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        user_id = session['user_id']  # Get user_id from session
+        print(f"Fetching trips for user: {user_id}")  # Debug print
+        
+        # Get all bookings for this user
+        bookings = db.child("cab_bookings").get().val()
+        active_trips = []
+        
+        if bookings:
+            for booking_id, booking_data in bookings.items():
+                # Check if this booking belongs to the current user
+                if booking_data.get('user_id') == user_id:
+                    # Check if it's an active trip
+                    if (booking_data.get('booking_status') == 0 or 
+                        booking_data.get('trip_status') in [0, 1] or 
+                        (booking_data.get('trip_status') == 2 and 
+                         booking_data.get('payment_status', 0) == 0)):
+                        
+                        # Get user details
+                        try:
+                            user = db.child("users").child(user_id).get().val()
+                            user_details = db.child("per_det").child(user_id).get().val()
+                        except Exception as e:
+                            print(f"Error fetching user details: {e}")
+                            user = {}
+                            user_details = {}
+                        
+                        # Add all required data to trip_data
+                        trip_data = {
+                            'booking_id': booking_id,
+                            'user_name': user.get('name', 'Unknown'),
+                            'user_image': user_details.get('image', 'default.jpg'),
+                            'from_location': booking_data.get('from_location'),
+                            'to_location': booking_data.get('to_location'),
+                            'booking_time': booking_data.get('booking_time'),
+                            'trip_amount': booking_data.get('trip_amount'),
+                            'booking_status': booking_data.get('booking_status'),
+                            'trip_status': booking_data.get('trip_status'),
+                            'payment_status': booking_data.get('payment_status', 0)
+                        }
+                        active_trips.append(trip_data)
+        
+        print(f"Found {len(active_trips)} active trips")  # Debug print
+        return jsonify({
+            'success': True,
+            'trips': active_trips
+        })
+        
+    except Exception as e:
+        print(f"Error in get_user_trips: {str(e)}")  # Debug print
+        return jsonify({
+            'success': False,
+            'message': f"Server error: {str(e)}"
+        }), 500
+
+@app.route('/complete_payment', methods=['POST'])
+def complete_payment():
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    try:
+        data = request.json
+        booking_id = data.get('booking_id')
+        token = data.get('token')
+        
+        # Here you would normally process the payment with Stripe
+        # For demo purposes, we'll just update the payment status
+        
+        db.child("cab_bookings").child(booking_id).update({
+            'payment_status': 1
+        })
+        
+        return jsonify({
+            'success': True,
+            'message': 'Payment completed successfully'
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/get_driver_location')
+def get_driver_location():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+    
+    try:
+        driver_id = session['user_id']
+        driver_data = db.child("driver").child(driver_id).get().val()
+        
+        if driver_data and 'current_lat' in driver_data and 'current_lng' in driver_data:
+            return jsonify({
+                'success': True,
+                'location': {
+                    'lat': float(driver_data['current_lat']),
+                    'lng': float(driver_data['current_lng'])
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Driver location not found'
+            })
+            
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+@app.route('/get_trip_amount/<booking_id>')
+def get_trip_amount(booking_id):
+    try:
+        booking = db.child("cab_bookings").child(booking_id).get().val()
+        if booking:
+            return jsonify({
+                'success': True,
+                'amount': booking.get('trip_amount', 0)
+            })
+        return jsonify({'success': False, 'error': 'Booking not found'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/create_payment_intent', methods=['POST'])
+def create_payment_intent():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+        
+    try:
+        data = request.json
+        booking_id = data.get('booking_id')
+        amount = int(float(data.get('amount')) * 100)  # Convert to cents
+        
+        if not booking_id or not amount:
+            return jsonify({'success': False, 'error': 'Missing required data'})
+        
+        # Create a PaymentIntent with Stripe
+        intent = stripe.PaymentIntent.create(
+            amount=amount,
+            currency='inr',
+            payment_method_types=['card'],
+            metadata={'booking_id': booking_id}
+        )
+        
+        # Generate QR code data URL containing the payment URL
+        payment_url = f"https://checkout.stripe.com/pay/{intent.client_secret}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=5)
+        qr.add_data(payment_url)
+        qr.make(fit=True)
+        
+        # Create QR code image
+        qr_image = qr.make_image(fill_color="black", back_color="white")
+        
+        # Convert QR image to base64 string
+        buffered = BytesIO()
+        qr_image.save(buffered, format="PNG")
+        qr_code_base64 = base64.b64encode(buffered.getvalue()).decode()
+        qr_code_url = f"data:image/png;base64,{qr_code_base64}"
+        
+        return jsonify({
+            'success': True,
+            'qr_code_url': qr_code_url,
+            'client_secret': intent.client_secret
+        })
+        
+    except Exception as e:
+        print(f"Error creating payment intent: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/recommendations')
+def recommendations():
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    
+    user_id = session['user_id']
+    user_image = db.child("per_det").child(user_id).child("image").get().val()
+    return render_template('recommendations.html', user_image=user_image)
+@app.route('/get_trip_history')
+def get_trip_history():
+    if 'user_id' not in session:
+        return jsonify({'success': False, 'error': 'Not logged in'})
+    
+    try:
+        driver_id = session['user_id']
+        # Get all bookings for the driver where all statuses are 1
+        bookings = db.child("cab_bookings").get().val()
+        completed_trips = []
+        
+        if bookings:
+            for booking_id, booking in bookings.items():
+                if (booking.get('driver_id') == driver_id and 
+                    booking.get('booking_status') == 1 and 
+                    booking.get('trip_status') == 1 and 
+                    booking.get('payment_status') == 1):
+                    
+                    # Get user details
+                    user_id = booking.get('user_id')
+                    user_data = db.child("users").child(user_id).get().val()
+                    user_details = db.child("per_det").child(user_id).get().val()
+                    
+                    trip_data = {
+                        'booking_id': booking_id,
+                        'user_id': user_id,
+                        'user_name': user_data.get('name', 'Unknown User') if user_data else 'Unknown User',
+                        'user_image': user_details.get('image', 'default.jpg') if user_details else 'default.jpg',
+                        'from_location': booking.get('from_location'),
+                        'to_location': booking.get('to_location'),
+                        'trip_amount': booking.get('trip_amount'),
+                        'booking_time': booking.get('booking_time')
+                    }
+                    completed_trips.append(trip_data)
+        
+        # Sort trips by booking time, most recent first
+        completed_trips.sort(key=lambda x: x.get('booking_time', ''), reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'trips': completed_trips
+        })
+        
+    except Exception as e:
+        print(f"Error fetching trip history: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        })
+@app.route('/get_recommendations')
+def get_recommendations():
+    if 'user' not in session:
+        return jsonify({'error': 'Not logged in'})
+
+    user_id = session['user_id']
+    
+    try:
+        # Get user's past trips and reviews
+        user_bookings = db.child("bookings").order_by_child("user_id").equal_to(user_id).get().val()
+        user_reviews = db.child("reviews").order_by_child("reviewer_id").equal_to(user_id).get().val()
+        
+        # Get all available trips
+        all_trips = db.child("trips").get().val()
+        
+        if not all_trips:
+            return jsonify({'recommendations': []})
+
+        # Create text corpus for TF-IDF
+        trip_texts = []
+        trip_ids = []
+        
+        for trip_id, trip in all_trips.items():
+            text = f"{trip.get('location', '')} {trip.get('description', '')}"
+            trip_texts.append(text)
+            trip_ids.append(trip_id)
+
+        # Create user profile based on past interactions
+        user_profile = ""
+        if user_bookings:
+            for booking in user_bookings.values():
+                trip_id = booking.get('trip_id')
+                if trip_id in all_trips:
+                    user_profile += f" {all_trips[trip_id].get('location', '')}"
+                    user_profile += f" {all_trips[trip_id].get('description', '')}"
+        
+        if user_reviews:
+            for review in user_reviews.values():
+                user_profile += f" {review.get('review', '')}"
+
+        # If no user profile, use a default one
+        if not user_profile.strip():
+            user_profile = "travel vacation tourism"
+
+        # Add user profile to corpus
+        all_texts = trip_texts + [user_profile]
+        
+        # Create TF-IDF matrix
+        tfidf = TfidfVectorizer(stop_words='english')
+        tfidf_matrix = tfidf.fit_transform(all_texts)
+        
+        # Calculate similarity scores
+        user_vector = tfidf_matrix[-1]
+        similarity_scores = cosine_similarity(user_vector, tfidf_matrix[:-1])
+        
+        # Get top recommendations
+        top_indices = similarity_scores[0].argsort()[::-1][:6]  # Get top 6 recommendations
+        
+        recommendations = []
+        for idx in top_indices:
+            trip_id = trip_ids[idx]
+            trip = all_trips[trip_id]
+            recommendations.append({
+                'trip_id': trip_id,
+                'location': trip.get('location'),
+                'description': trip.get('description'),
+                'image': trip.get('image1'),
+                'score': similarity_scores[0][idx]
+            })
+        
+        return jsonify({'recommendations': recommendations})
+    
+    except Exception as e:
+        print(f"Error generating recommendations: {str(e)}")
+        return jsonify({'error': str(e)})
+
+if __name__ == '__main__': 
+    app.run(debug=True)

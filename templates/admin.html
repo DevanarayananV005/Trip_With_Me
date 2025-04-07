@@ -64,6 +64,7 @@
                     <li><a href="#" onclick="showSection('users')"><i class="fas fa-users"></i> <span class="nav-text">Users</span></a></li>
                     <li><a href="#" onclick="showSection('settings')"><i class="fas fa-calendar"></i> <span class="nav-text">Schedule Trip</span></a></li>
                     <li><a href="#" onclick="showSection('companies')"><i class="fas fa-home"></i> <span class="nav-text">Companies</span></a></li>
+                    <li><a href="#" onclick="showSection('drivers')"><i class="fas fa-car"></i> <span class="nav-text">Drivers</span></a></li>
                     <li><a href="#" onclick="showSection('comments')"><i class="fas fa-message"></i> <span class="nav-text">Comments</span></a></li>
                     <li><a href="#" onclick="showSection('reports')"><i class="fas fa-chart-line"></i> <span class="nav-text">Reports</span></a></li>
                 </ul>
@@ -510,6 +511,50 @@
                         </table>
                     </div>
                 </section>
+
+                <!-- Add this new section before the comments section -->
+                <section id="drivers" class="section">
+                    <h1><b style="color:white;">Driver Data</b></h1><br>
+                    <div class="dynamic-box" id="driver-data">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Sl No</th>
+                                    <th>Driver Name</th>
+                                    <th>Vehicle State</th>
+                                    <th>RTO</th>
+                                    <th>License Number</th>
+                                    <th>Vehicle Number</th>
+                                    <th>Documents</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for driver in driver_data %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ driver.name }}</td>
+                                    <td>{{ driver.vehicle_state }}</td>
+                                    <td>{{ driver.rto }}</td>
+                                    <td>{{ driver.licence_number }}</td>
+                                    <td>{{ driver.vehicle_number }}</td>
+                                    <td>
+                                        <a href="{{ url_for('static', filename='images/' ~ driver.licence_image) }}" target="_blank" class="btn btn-info btn-sm">License</a>
+                                        <a href="{{ url_for('static', filename='images/' ~ driver.rc_image) }}" target="_blank" class="btn btn-info btn-sm">RC</a>
+                                    </td>
+                                    <td>
+                                        <button class="btn {% if driver.status == 1 %}btn-success{% else %}btn-danger{% endif %} driver-status-btn" 
+                                                data-user-id="{{ driver.user_id }}" 
+                                                data-status="{{ driver.status }}">
+                                            {% if driver.status == 1 %}Active{% else %}Inactive{% endif %}
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
             </div>
         </div>
     </div>
@@ -692,5 +737,41 @@
         </script>
       {% endif %}
     {% endwith %}
+
+    <!-- Add this script at the end of the file -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.driver-status-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const currentStatus = parseInt(this.getAttribute('data-status'));
+                const newStatus = currentStatus === 0 ? 1 : 0;
+
+                fetch(`/update_driver_status/${userId}/${newStatus}`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Update button appearance
+                            this.classList.toggle('btn-danger', newStatus === 0);
+                            this.classList.toggle('btn-success', newStatus === 1);
+                            this.textContent = newStatus === 1 ? 'Active' : 'Inactive';
+                            this.setAttribute('data-status', newStatus);
+
+                            // Show success message
+                            Swal.fire({
+                                icon: 'success',
+                                title: `Driver status ${newStatus === 1 ? 'activated' : 'deactivated'} successfully`
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error updating status'
+                            });
+                        }
+                    });
+            });
+        });
+    });
+    </script>
 </body>
 </html>

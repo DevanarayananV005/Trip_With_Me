@@ -22,8 +22,8 @@ preload_app = True
 # Redirect stdout/stderr to log file
 capture_output = True
 
-# Use sync worker class
-worker_class = 'sync'
+# Use gevent worker class for better performance
+worker_class = 'gevent'
 
 # Set the number of threads for handling requests
 threads = 4

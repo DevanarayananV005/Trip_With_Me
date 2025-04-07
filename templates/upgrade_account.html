@@ -6,6 +6,7 @@
     <title>Upgrade Account</title>
     <link rel="icon" href="static/images/aes11.png" type="image/icon type">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         body {
             display: flex;
@@ -123,6 +124,52 @@
                 <button type="submit" class="btn btn-primary">Submit</button>
             </form>
         </div>
+        <div class="form-container" id="cabDriverForm" style="display: none;">
+            <form id="driverForm" method="POST" action="{{ url_for('upgrade_account') }}" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label for="driverName" class="form-label">Name</label>
+                    <input type="text" class="form-control" id="driverName" name="driver_name" required>
+                    <div class="error" id="driverNameError"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="vehicleState" class="form-label">Vehicle Registered State</label>
+                    <select class="form-control" id="vehicleState" name="vehicle_state" required>
+                        <option value="">Select State</option>
+                        <!-- States will be populated via JavaScript -->
+                    </select>
+                    <div class="error" id="vehicleStateError"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="rto" class="form-label">R.T.O</label>
+                    <select class="form-control" id="rto" name="rto" required>
+                        <option value="">Select RTO</option>
+                        <!-- RTOs will be populated based on state selection -->
+                    </select>
+                    <div class="error" id="rtoError"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="licenceNumber" class="form-label">Licence Number</label>
+                    <input type="text" class="form-control" id="licenceNumber" name="licence_number" required>
+                    <div class="error" id="licenceNumberError"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="vehicleNumber" class="form-label">Vehicle Registration Number</label>
+                    <input type="text" class="form-control" id="vehicleNumber" name="vehicle_number" required>
+                    <div class="error" id="vehicleNumberError"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="rcImage" class="form-label">RC Image</label>
+                    <input type="file" class="form-control" id="rcImage" name="rc_image" accept="image/jpeg,image/jpg,image/png" required>
+                    <div class="error" id="rcImageError"></div>
+                </div>
+                <div class="mb-3">
+                    <label for="licenceImage" class="form-label">Licence Image</label>
+                    <input type="file" class="form-control" id="licenceImage" name="licence_image" accept="image/jpeg,image/jpg,image/png" required>
+                    <div class="error" id="licenceImageError"></div>
+                </div>
+                <button type="submit" class="btn btn-primary">Submit</button>
+            </form>
+        </div>
     </div>
     <script>
         const statesAndDistricts = {
@@ -172,7 +219,8 @@ document.getElementById('packageAdminBox').addEventListener('click', function() 
 });
 
 document.getElementById('cabDriverBox').addEventListener('click', function() {
-    alert('Cab Driver option selected. Currently, this link stays on the same page.');
+    document.querySelector('.role-selection').style.display = 'none';
+    document.getElementById('cabDriverForm').style.display = 'block';
 });
 
 document.getElementById('companyBeginDate').addEventListener('focus', function() {
@@ -270,6 +318,406 @@ document.getElementById('adminForm').addEventListener('submit', function(event) 
     } else {
         ownershipCertificateError.textContent = '';
     }
+});
+
+// RTO codes for each state (example - add more as needed)
+const rtoData = {
+    "Andhra Pradesh": [
+        {"code": "AP-01", "name": "Adilabad"},
+        {"code": "AP-02", "name": "Anantapur"},
+        {"code": "AP-03", "name": "Chittoor"},
+        {"code": "AP-04", "name": "Kadapa"},
+        {"code": "AP-05", "name": "Kakinada"},
+        {"code": "AP-06", "name": "Karimnagar"},
+        {"code": "AP-07", "name": "Kurnool"},
+        {"code": "AP-08", "name": "Machilipatnam"},
+        {"code": "AP-09", "name": "Nellore"},
+        {"code": "AP-10", "name": "Nizamabad"},
+        {"code": "AP-11", "name": "Ongole"},
+        {"code": "AP-12", "name": "Srikakulam"},
+        {"code": "AP-13", "name": "Visakhapatnam"},
+        {"code": "AP-14", "name": "Vizianagaram"},
+        {"code": "AP-15", "name": "Warangal"},
+        {"code": "AP-16", "name": "Eluru"},
+        {"code": "AP-17", "name": "Guntur"},
+        {"code": "AP-18", "name": "Hyderabad"},
+        {"code": "AP-19", "name": "Vijayawada"},
+        {"code": "AP-20", "name": "Rajahmundry"}
+    ],
+    "Arunachal Pradesh": [
+        {"code": "AR-01", "name": "Itanagar"},
+        {"code": "AR-02", "name": "Pasighat"},
+        {"code": "AR-03", "name": "Bomdila"}
+    ],
+    "Assam": [
+        {"code": "AS-01", "name": "Guwahati"},
+        {"code": "AS-02", "name": "Nagaon"},
+        {"code": "AS-03", "name": "Jorhat"},
+        {"code": "AS-04", "name": "Silchar"},
+        {"code": "AS-05", "name": "Dibrugarh"},
+        {"code": "AS-06", "name": "Diphu"},
+        {"code": "AS-07", "name": "Tezpur"},
+        {"code": "AS-08", "name": "Lakhimpur"},
+        {"code": "AS-09", "name": "Kokrajhar"},
+        {"code": "AS-10", "name": "Mangaldoi"}
+    ],
+    "Bihar": [
+        {"code": "BR-01", "name": "Patna"},
+        {"code": "BR-02", "name": "Gaya"},
+        {"code": "BR-03", "name": "Bhagalpur"},
+        {"code": "BR-04", "name": "Muzaffarpur"},
+        {"code": "BR-05", "name": "Darbhanga"},
+        {"code": "BR-06", "name": "Chapra"},
+        {"code": "BR-07", "name": "Motihari"},
+        {"code": "BR-08", "name": "Purnia"},
+        {"code": "BR-09", "name": "Ara"},
+        {"code": "BR-10", "name": "Sasaram"}
+    ],
+    "Chhattisgarh": [
+        {"code": "CG-01", "name": "Raipur"},
+        {"code": "CG-02", "name": "Bilaspur"},
+        {"code": "CG-03", "name": "Raigarh"},
+        {"code": "CG-04", "name": "Durg"},
+        {"code": "CG-05", "name": "Jagdalpur"},
+        {"code": "CG-06", "name": "Ambikapur"}
+    ],
+    "Goa": [
+        {"code": "GA-01", "name": "Panaji"},
+        {"code": "GA-02", "name": "Margao"},
+        {"code": "GA-03", "name": "Mapusa"},
+        {"code": "GA-04", "name": "Bicholim"}
+    ],
+    "Gujarat": [
+        {"code": "GJ-01", "name": "Ahmedabad"},
+        {"code": "GJ-02", "name": "Mehsana"},
+        {"code": "GJ-03", "name": "Rajkot"},
+        {"code": "GJ-04", "name": "Bhavnagar"},
+        {"code": "GJ-05", "name": "Surat"},
+        {"code": "GJ-06", "name": "Vadodara"},
+        {"code": "GJ-07", "name": "Nadiad"},
+        {"code": "GJ-08", "name": "Palanpur"},
+        {"code": "GJ-09", "name": "Himmatnagar"},
+        {"code": "GJ-10", "name": "Jamnagar"}
+    ],
+    "Haryana": [
+        {"code": "HR-01", "name": "Ambala"},
+        {"code": "HR-02", "name": "Yamunanagar"},
+        {"code": "HR-03", "name": "Panchkula"},
+        {"code": "HR-04", "name": "Naraingarh"},
+        {"code": "HR-05", "name": "Karnal"},
+        {"code": "HR-06", "name": "Panipat"},
+        {"code": "HR-07", "name": "Kurukshetra"},
+        {"code": "HR-08", "name": "Kaithal"},
+        {"code": "HR-09", "name": "Gurgaon"},
+        {"code": "HR-10", "name": "Faridabad"}
+    ],
+    "Himachal Pradesh": [
+        {"code": "HP-01", "name": "Shimla"},
+        {"code": "HP-02", "name": "Dharamshala"},
+        {"code": "HP-03", "name": "Mandi"},
+        {"code": "HP-04", "name": "Chamba"},
+        {"code": "HP-05", "name": "Hamirpur"},
+        {"code": "HP-06", "name": "Nahan"},
+        {"code": "HP-07", "name": "Una"},
+        {"code": "HP-08", "name": "Bilaspur"}
+    ],
+    "Jharkhand": [
+        {"code": "JH-01", "name": "Ranchi"},
+        {"code": "JH-02", "name": "Dhanbad"},
+        {"code": "JH-03", "name": "Jamshedpur"},
+        {"code": "JH-04", "name": "Hazaribagh"},
+        {"code": "JH-05", "name": "Bokaro"},
+        {"code": "JH-06", "name": "Deoghar"},
+        {"code": "JH-07", "name": "Giridih"},
+        {"code": "JH-08", "name": "Koderma"}
+    ],
+    "Karnataka": [
+        {"code": "KA-01", "name": "Bangalore Central"},
+        {"code": "KA-02", "name": "Bangalore West"},
+        {"code": "KA-03", "name": "Bangalore East"},
+        {"code": "KA-04", "name": "Bangalore North"},
+        {"code": "KA-05", "name": "Bangalore South"},
+        {"code": "KA-06", "name": "Tumkur"},
+        {"code": "KA-07", "name": "Kolar"},
+        {"code": "KA-08", "name": "Mysore"},
+        {"code": "KA-09", "name": "Mandya"},
+        {"code": "KA-10", "name": "Hassan"}
+    ],
+    "Kerala": [
+        {"code": "KL-01", "name": "Thiruvananthapuram"},
+        {"code": "KL-02", "name": "Kollam"},
+        {"code": "KL-03", "name": "Pathanamthitta"},
+        {"code": "KL-04", "name": "Alappuzha"},
+        {"code": "KL-05", "name": "Kottayam"},
+        {"code": "KL-06", "name": "Idukki"},
+        {"code": "KL-07", "name": "Ernakulam"},
+        {"code": "KL-08", "name": "Thrissur"},
+        {"code": "KL-09", "name": "Palakkad"},
+        {"code": "KL-10", "name": "Malappuram"},
+        {"code": "KL-11", "name": "Kozhikode"},
+        {"code": "KL-12", "name": "Wayanad"},
+        {"code": "KL-13", "name": "Kannur"},
+        {"code": "KL-14", "name": "Kasaragod"}
+    ],
+    "Madhya Pradesh": [
+        {"code": "MP-01", "name": "Bhopal"},
+        {"code": "MP-02", "name": "Indore"},
+        {"code": "MP-03", "name": "Gwalior"},
+        {"code": "MP-04", "name": "Jabalpur"},
+        {"code": "MP-05", "name": "Ujjain"},
+        {"code": "MP-06", "name": "Rewa"},
+        {"code": "MP-07", "name": "Sagar"},
+        {"code": "MP-08", "name": "Satna"},
+        {"code": "MP-09", "name": "Morena"},
+        {"code": "MP-10", "name": "Khandwa"}
+    ],
+    "Maharashtra": [
+        {"code": "MH-01", "name": "Mumbai Central"},
+        {"code": "MH-02", "name": "Mumbai West"},
+        {"code": "MH-03", "name": "Mumbai East"},
+        {"code": "MH-04", "name": "Thane"},
+        {"code": "MH-05", "name": "Pune"},
+        {"code": "MH-06", "name": "Nagpur"},
+        {"code": "MH-07", "name": "Nashik"},
+        {"code": "MH-08", "name": "Aurangabad"},
+        {"code": "MH-09", "name": "Kolhapur"},
+        {"code": "MH-10", "name": "Solapur"}
+    ],
+    "Tamil Nadu": [
+        {"code": "TN-01", "name": "Chennai Central"},
+        {"code": "TN-02", "name": "Chennai West"},
+        {"code": "TN-03", "name": "Chennai North"},
+        {"code": "TN-04", "name": "Chennai South"},
+        {"code": "TN-05", "name": "Chennai East"},
+        {"code": "TN-06", "name": "Coimbatore"},
+        {"code": "TN-07", "name": "Madurai"},
+        {"code": "TN-08", "name": "Salem"},
+        {"code": "TN-09", "name": "Trichy"},
+        {"code": "TN-10", "name": "Tirunelveli"}
+    ],
+    "Telangana": [
+        {"code": "TS-01", "name": "Hyderabad Central"},
+        {"code": "TS-02", "name": "Hyderabad East"},
+        {"code": "TS-03", "name": "Hyderabad West"},
+        {"code": "TS-04", "name": "Hyderabad North"},
+        {"code": "TS-05", "name": "Hyderabad South"},
+        {"code": "TS-06", "name": "Rangareddy"},
+        {"code": "TS-07", "name": "Medchal"},
+        {"code": "TS-08", "name": "Warangal"},
+        {"code": "TS-09", "name": "Karimnagar"},
+        {"code": "TS-10", "name": "Khammam"}
+    ],
+    "Uttar Pradesh": [
+        {"code": "UP-01", "name": "Lucknow"},
+        {"code": "UP-02", "name": "Kanpur"},
+        {"code": "UP-03", "name": "Agra"},
+        {"code": "UP-04", "name": "Allahabad"},
+        {"code": "UP-05", "name": "Varanasi"},
+        {"code": "UP-06", "name": "Meerut"},
+        {"code": "UP-07", "name": "Ghaziabad"},
+        {"code": "UP-08", "name": "Noida"},
+        {"code": "UP-09", "name": "Bareilly"},
+        {"code": "UP-10", "name": "Moradabad"}
+    ],
+    "West Bengal": [
+        {"code": "WB-01", "name": "Kolkata"},
+        {"code": "WB-02", "name": "Howrah"},
+        {"code": "WB-03", "name": "Asansol"},
+        {"code": "WB-04", "name": "Durgapur"},
+        {"code": "WB-05", "name": "Siliguri"},
+        {"code": "WB-06", "name": "Malda"},
+        {"code": "WB-07", "name": "Midnapore"},
+        {"code": "WB-08", "name": "Barasat"},
+        {"code": "WB-09", "name": "Barrackpore"},
+        {"code": "WB-10", "name": "Bankura"}
+    ]
+};
+
+// Populate RTOs based on state selection
+document.getElementById('vehicleState').addEventListener('change', function() {
+    const state = this.value;
+    const rtoSelect = document.getElementById('rto');
+    rtoSelect.innerHTML = '<option value="">Select RTO</option>';
+    if (state && rtoData[state]) {
+        rtoData[state].forEach(rto => {
+            const option = document.createElement('option');
+            option.value = rto.code;
+            option.textContent = `${rto.code} - ${rto.name}`;
+            rtoSelect.appendChild(option);
+        });
+    }
+});
+
+// Name validation
+document.getElementById('driverName').addEventListener('keyup', function() {
+    const name = this.value;
+    const namePattern = /^[A-Za-z\s]{3,}$/;
+    const errorElement = document.getElementById('driverNameError');
+    if (!namePattern.test(name)) {
+        errorElement.textContent = 'Enter a valid name (letters and spaces only)';
+    } else {
+        errorElement.textContent = '';
+    }
+});
+
+// License number validation
+document.getElementById('licenceNumber').addEventListener('keyup', function() {
+    const licence = this.value.toUpperCase();
+    const licencePattern = /^[A-Z]{2}-\d{2}\d{4}\d{7}$/;
+    const errorElement = document.getElementById('licenceNumberError');
+    if (!licencePattern.test(licence)) {
+        errorElement.textContent = 'Enter valid licence number (Format: SS-RRYYYYNNNNNNN)';
+    } else {
+        errorElement.textContent = '';
+    }
+});
+
+// Vehicle number validation
+document.getElementById('vehicleNumber').addEventListener('keyup', function() {
+    const number = this.value.toUpperCase();
+    const numberPattern = /^[A-Z]{2}\d{2}[A-Z0-9]{1,7}[A-Z]$/;
+    const errorElement = document.getElementById('vehicleNumberError');
+    if (!numberPattern.test(number)) {
+        errorElement.textContent = 'Enter valid vehicle number';
+    } else {
+        errorElement.textContent = '';
+    }
+});
+
+function validateForm() {
+    let hasError = false;
+    
+    // Clear previous error messages
+    document.querySelectorAll('.error').forEach(error => error.textContent = '');
+    
+    // Validate driver name (letters and spaces only)
+    const driverName = document.getElementById('driverName').value;
+    if (!/^[A-Za-z\s]+$/.test(driverName)) {
+        document.getElementById('driverNameError').textContent = 'Name should contain only letters and spaces';
+        hasError = true;
+    }
+
+    // Validate vehicle state selection
+    const vehicleState = document.getElementById('vehicleState').value;
+    if (!vehicleState) {
+        document.getElementById('vehicleStateError').textContent = 'Please select a state';
+        hasError = true;
+    }
+
+    // Validate RTO selection
+    const rto = document.getElementById('rto').value;
+    if (!rto) {
+        document.getElementById('rtoError').textContent = 'Please select an RTO';
+        hasError = true;
+    }
+
+    // Validate licence number format (SS-RRYYYYNNNNNNN)
+    const licenceNumber = document.getElementById('licenceNumber').value;
+    const licencePattern = /^[A-Z]{2}-\d{2}\d{4}\d{7}$/;
+    if (!licencePattern.test(licenceNumber)) {
+        document.getElementById('licenceNumberError').textContent = 'Invalid licence number format (e.g., KL-01202312345678)';
+        hasError = true;
+    }
+
+    // Validate vehicle number format (state code + RTO number + series)
+    const vehicleNumber = document.getElementById('vehicleNumber').value;
+    const vehiclePattern = /^[A-Z]{2}\d{2}[A-Z0-9]{1,7}$/;
+    if (!vehiclePattern.test(vehicleNumber)) {
+        document.getElementById('vehicleNumberError').textContent = 'Invalid vehicle number format (e.g., KL01AB1234)';
+        hasError = true;
+    }
+
+    // Validate RC image
+    const rcImage = document.getElementById('rcImage').files[0];
+    if (!rcImage) {
+        document.getElementById('rcImageError').textContent = 'Please select RC image';
+        hasError = true;
+    } else {
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(rcImage.type)) {
+            document.getElementById('rcImageError').textContent = 'Please select a valid image file (JPG, JPEG, or PNG)';
+            hasError = true;
+        }
+    }
+
+    // Validate licence image
+    const licenceImage = document.getElementById('licenceImage').files[0];
+    if (!licenceImage) {
+        document.getElementById('licenceImageError').textContent = 'Please select licence image';
+        hasError = true;
+    } else {
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(licenceImage.type)) {
+            document.getElementById('licenceImageError').textContent = 'Please select a valid image file (JPG, JPEG, or PNG)';
+            hasError = true;
+        }
+    }
+
+    return !hasError;
+}
+
+// Update your form submission event listener
+document.getElementById('driverForm').addEventListener('submit', function(event) {
+    event.preventDefault();
+    
+    if (validateForm()) {
+        const formData = new FormData(this);
+        
+        fetch('/upgrade_account', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    title: 'Success!',
+                    text: data.message,
+                    icon: 'success',
+                    confirmButtonText: 'OK'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Clear the session and redirect
+                        fetch('/logout').then(() => {
+                            window.location.href = data.redirect;
+                        });
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error!',
+                    text: data.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            }
+        })
+        .catch(error => {
+            Swal.fire({
+                title: 'Error!',
+                text: 'An error occurred while processing your request.',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+        });
+    }
+});
+
+// Add this code after your rtoData definition
+document.addEventListener('DOMContentLoaded', function() {
+    // Populate states in vehicle state dropdown
+    const vehicleStateSelect = document.getElementById('vehicleState');
+    
+    // Clear existing options except the first one
+    vehicleStateSelect.innerHTML = '<option value="">Select State</option>';
+    
+    // Add states from rtoData
+    Object.keys(rtoData).forEach(state => {
+        const option = document.createElement('option');
+        option.value = state;
+        option.textContent = state;
+        vehicleStateSelect.appendChild(option);
+    });
 });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

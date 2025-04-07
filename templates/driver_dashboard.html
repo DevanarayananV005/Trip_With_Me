@@ -1,0 +1,3390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard - Trip With Me</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* Add these to your existing styles */
+            .completed-badge {
+                display: inline-block;
+                padding: 4px 8px;
+                background-color: #4CAF50;
+                color: white;
+                border-radius: 12px;
+                font-size: 0.8rem;
+                margin-top: 8px;
+            }
+
+            #tripHistorySection .trip-card {
+                border-left: 4px solid #4CAF50;
+            }
+
+            #tripHistorySection .location-info {
+                opacity: 0.8;
+            }
+        :root {
+            --dark-bg: #1a1a1a;
+            --darker-bg: #141414;
+            --card-bg: #242424;
+            --accent-color: #4CAF50;
+            --text-primary: #ffffff;
+            --text-secondary: #b3b3b3;
+            --border-color: #333333;
+            --sidebar-width: 260px;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--darker-bg);
+            position: fixed;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            padding: 20px 0;
+            border-right: 1px solid var(--border-color);
+        }
+
+        .logo-container {
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .logo-container img {
+            max-width: 180px;
+            height: auto;
+        }
+
+        .driver-profile {
+            padding: 0 20px 20px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .driver-name {
+            font-size: 1.2rem;
+            margin: 10px 0;
+        }
+
+        .online-status {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            color: var (--accent-color);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-color);
+        }
+
+        .nav-menu {
+            padding: 20px 0;
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            margin: 5px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .nav-item.active {
+            background-color: var(--accent-color);
+            color: var(--text-primary);
+        }
+
+        .nav-item:hover:not(.active) {
+            background-color: rgba(76, 175, 80, 0.1);
+            color: var(--accent-color);
+        }
+
+        .nav-item i {
+            width: 24px;
+            margin-right: 10px;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 20px 30px;
+        }
+
+        .header-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vehicle-info {
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+
+        .availability-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 25px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 160px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+            color: var(--accent-color);
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--text-primary);
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .chart-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-title {
+            margin-bottom: 20px;
+            color: var(--text-primary);
+            font-size: 16px;
+        }
+
+        .chart-wrapper {
+            flex: 1;
+            position: relative;
+            width: 100%;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+            border-radius: 8px;
+            min-height: 240px;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Custom switch styling */
+        .form-switch .form-check-input {
+            width: 45px;
+            height: 24px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-color: transparent;
+        }
+
+        .form-switch .form-check-input:checked {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+
+        @media (max-width: 1200px) {
+            .charts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 992px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            .chart-card {
+                height: 250px;
+            }
+
+            .car-details-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.95);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+                backdrop-filter: blur(5px);
+            }
+            
+            .modal-content {
+                background: #1a1a1a;
+                border-radius: 10px;
+                width: 90%;
+                max-width: 500px;
+                max-height: 90vh;
+                overflow-y: auto;
+                box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            }
+            
+            .modal-header {
+                padding: 20px;
+                border-bottom: 1px solid #333;
+            }
+            
+            .modal-header h2 {
+                color: #fff;
+                margin: 0;
+                font-size: 1.5rem;
+                text-align: center;
+            }
+            
+            .modal-body {
+                padding: 20px;
+            }
+            
+            .form-group {
+                margin-bottom: 20px;
+            }
+            
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                color: #fff;
+                font-weight: 500;
+            }
+            
+            .form-group small {
+                color: #666;
+                font-size: 0.8rem;
+                margin-top: 4px;
+                display: block;
+            }
+            
+            .form-control,
+            .form-select {
+                width: 100%;
+                padding: 10px;
+                background: #2a2a2a;
+                border: 1px solid #333;
+                border-radius: 5px;
+                color: #fff;
+                font-size: 1rem;
+            }
+            
+            .form-control:focus,
+            .form-select:focus {
+                outline: none;
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 2px rgba(13,110,253,0.25);
+            }
+            
+            .file-upload {
+                margin-bottom: 10px;
+            }
+            
+            .file-upload input[type="file"] {
+                display: none;
+            }
+            
+            .file-upload label {
+                display: block;
+                padding: 10px;
+                background: #2a2a2a;
+                border: 1px solid #333;
+                border-radius: 5px;
+                color: #fff;
+                cursor: pointer;
+                text-align: center;
+                transition: all 0.3s ease;
+            }
+            
+            .file-upload label:hover {
+                background: #333;
+            }
+            
+            .btn-primary {
+                width: 100%;
+                padding: 12px;
+                background: #0d6efd;
+                border: none;
+                border-radius: 5px;
+                color: #fff;
+                font-size: 1rem;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.3s ease;
+            }
+            
+            .btn-primary:hover {
+                background: #0b5ed7;
+            }
+            
+            /* Custom scrollbar for modal */
+            .modal-content::-webkit-scrollbar {
+                width: 8px;
+            }
+            
+            .modal-content::-webkit-scrollbar-track {
+                background: #1a1a1a;
+            }
+            
+            .modal-content::-webkit-scrollbar-thumb {
+                background: #333;
+                border-radius: 4px;
+            }
+            
+            .modal-content::-webkit-scrollbar-thumb:hover {
+                background: #444;
+            }
+            
+            /* File input styling */
+            .file-upload .selected-file {
+                margin-top: 5px;
+                font-size: 0.8rem;
+                color: #666;
+            }
+        }
+
+        .car-details-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            border-radius: 10px;
+            width: 450px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #333;
+            position: relative;
+            margin: 20px;
+        }
+
+        .modal-header {
+            background: #000;
+            padding: 20px;
+            border-bottom: 1px solid #333;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .modal-header h2 {
+            color: #fff;
+            margin: 0;
+            font-size: 1.5rem;
+            text-align: center;
+        }
+
+        .modal-body {
+            padding: 20px;
+            background: #000;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #fff;
+            font-weight: 500;
+        }
+
+        .form-group small {
+            color: #888;
+            font-size: 0.8rem;
+            margin-top: 4px;
+            display: block;
+        }
+
+        .form-select,
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-select:focus,
+        .form-control:focus {
+            outline: none;
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 2px rgba(13,110,253,0.25);
+        }
+
+        .file-upload {
+            margin-bottom: 15px;
+        }
+
+        .file-upload label {
+            display: block;
+            padding: 12px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            color: #fff;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload label:hover {
+            background: #222;
+            border-color: #444;
+        }
+
+        .file-upload input[type="file"] {
+            display: none;
+        }
+
+        .selected-file {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #888;
+            padding-left: 5px;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: #0d6efd;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .btn-primary:hover {
+            background: #0b5ed7;
+        }
+
+        /* Hide main content scroll when modal is open */
+        body.modal-open {
+            overflow: hidden;
+        }
+
+        /* Custom scrollbar for modal */
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: #000;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        /* Vehicle Info Section Styles */
+        .vehicle-info-section {
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .vehicle-details-container {
+            background: #000;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .vehicle-info-card {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .car-photos-slider {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 16/9;
+        }
+
+        .slider-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .slider-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            position: absolute;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .slider-container img.active {
+            opacity: 1;
+        }
+
+        .slider-nav button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            border: none;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+
+        .slider-nav .prev-btn {
+            left: 10px;
+        }
+
+        .slider-nav .next-btn {
+            right: 10px;
+        }
+
+        .vehicle-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .detail-group {
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .detail-group label {
+            display: block;
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+        }
+
+        .detail-group span {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        /* Update Modal Styles */
+        .update-vehicle-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .vehicle-info-card {
+                grid-template-columns: 1fr;
+            }
+            
+            .vehicle-details {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .current-photo {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .current-photo span {
+            color: #888;
+            font-style: italic;
+        }
+
+        .file-upload {
+            margin-bottom: 20px;
+        }
+
+        .file-upload label {
+            margin-bottom: 5px;
+        }
+
+        .selected-file {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            color: #0d6efd;
+        }
+
+        .detail-group {
+            margin-bottom: 15px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 10px;
+        }
+
+        .detail-group label {
+            display: block;
+            color: #888;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+
+        .detail-group span {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .ratings-section {
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px;
+        }
+
+        .average-rating {
+            text-align: center;
+            padding: 20px;
+            background: #000;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .rating-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #ffc107;
+        }
+
+        .star-display {
+            color: #ffc107;
+            font-size: 1.5rem;
+            margin: 10px 0;
+        }
+
+        .total-ratings {
+            color: #888;
+            font-size: 0.9rem;
+        }
+
+        .ratings-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .rating-card {
+            background: #000;
+            border-radius: 10px;
+            padding: 15px;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .rater-info {
+            color: #fff;
+        }
+
+        .rating-stars {
+            color: #ffc107;
+        }
+
+        .rating-date {
+            color: #888;
+            font-size: 0.8rem;
+        }
+
+        .trips-container {
+            display: grid;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        .trip-card {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .passenger-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .passenger-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #009be3;
+        }
+
+        .trip-details {
+            color: #fff;
+        }
+
+        .location-info {
+            margin: 15px 0;
+            padding: 15px;
+            background: #2a2a2a;
+            border-radius: 10px;
+        }
+
+        .location-info p {
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .location-info i {
+            color: #009be3;
+        }
+
+        .trip-actions {
+            margin-top: 15px;
+        }
+
+        .trip-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .accept-button {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .start-button {
+            background: #2196F3;
+            color: white;
+        }
+
+        .payment-button {
+            background: #FF9800;
+            color: white;
+        }
+
+        .trip-button:hover {
+            opacity: 0.9;
+        }
+
+        .payment-pending {
+            text-align: center;
+            color: #ff4444;
+            padding: 10px;
+            background: #1a1a1a;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .no-trips {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .active-trips-section {
+            padding: 20px;
+            background: #1a1a1a;
+        }
+
+        .trip-card {
+            margin-bottom: 20px;
+            background: #2a2a2a;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .no-trips, .error-message {
+            text-align: center;
+            padding: 20px;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .no-trips {
+            color: #666;
+        }
+
+        .error-message {
+            color: #ff4444;
+        }
+
+        .trip-card {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .passenger-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .passenger-photo {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .trip-actions {
+            margin-top: 15px;
+        }
+
+        .trip-button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .accept-button {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .start-button {
+            background: #2196F3;
+            color: white;
+        }
+
+        .complete-button {
+            background: #FF9800;
+            color: white;
+        }
+
+        .payment-pending {
+            text-align: center;
+            color: #ff4444;
+            padding: 10px;
+            background: #2a2a2a;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .trips-container {
+    display: grid;
+    gap: 20px;
+    padding: 20px;
+}
+
+.trip-card {
+    background: #1a1a1a;
+    border-radius: 15px;
+    padding: 20px;
+    transition: transform 0.3s ease;
+}
+
+.trip-card:hover {
+    transform: translateY(-5px);
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.no-trips {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.no-trips i {
+    color: #333;
+    margin-bottom: 10px;
+}
+        .map-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.map-container {
+    position: relative;
+    width: 80%;
+    height: 80%;
+    background: #1a1a1a;
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.ride-start-button {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.ride-start-button:hover {
+    background: #45a049;
+    transform: translateX(-50%) translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.ride-start-button i {
+    font-size: 14px;
+}
+
+#routeMap {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+}
+.payment-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+}
+
+.payment-container {
+    background: #1a1a1a;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+}
+
+#qr-container {
+    margin: 20px 0;
+    padding: 20px;
+    background: white;
+    display: inline-block;
+    border-radius: 10px;
+}
+
+.payment-amount {
+    font-size: 1.2rem;
+    margin: 15px 0;
+    color: white;
+}
+
+.payment-button {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.payment-button:hover {
+    background: #45a049;
+}
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="logo-container">
+                <img src="{{ url_for('static', filename='images/aes11.png') }}" alt="Logo">
+            </div>
+            <div class="driver-profile">
+                <div class="driver-name">{{ driver_data.name }}</div>
+                <div class="online-status">
+                    <span class="status-dot"></span>
+                    <span>Online</span>
+                </div>
+            </div>
+            <div class="nav-menu">
+                <a href="#" class="nav-item active" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" data-section="active-trips">
+                    <i class="fas fa-route"></i> Active Trips
+                </a>
+                <!-- <a href="#tripHistorySection" class="nav-item" data-section="trip_history">
+                    <i class="fas fa-history"></i>
+                    <span>Trip History</span>
+                </a>
+                <a href="#" class="nav-item" data-section="earnings">
+                    <i class="fas fa-wallet"></i>
+                    <span>Earnings</span>
+                </a> -->
+                <a href="#" class="nav-item" data-section="vehicle_info">
+                    <i class="fas fa-car"></i>
+                    <span>Vehicle Info</span>
+                </a>
+                <a href="#" class="nav-item" data-section="settings">
+                    <i class="fas fa-cog"></i>
+                    <span>Settings</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="nav-item" style="color: #dc3545;">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span>Logout</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Dashboard Content -->
+            <div class="dashboard-section">
+                <div class="header-card">
+                    <div>
+                        <h4 class="mb-0">Welcome back, {{ driver_data.name }}!</h4>
+                        <div class="vehicle-info">{{ driver_data.vehicle.model }} - {{ driver_data.vehicle.number }}</div>
+                    </div>
+                    <div class="availability-toggle">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="availabilityToggle" checked>
+                            <label class="form-check-label" for="availabilityToggle">Available for trips</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="fas fa-money-bill-wave stat-icon"></i>
+                        <div class="stat-value">₹{{ driver_data.stats.earnings }}</div>
+                        <div class="stat-label">TODAY'S EARNINGS</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-route stat-icon"></i>
+                        <div class="stat-value">{{ driver_data.stats.trips }}</div>
+                        <div class="stat-label">TODAY'S TRIPS</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-star stat-icon"></i>
+                        <div class="stat-value rating-value">5.0</div>
+                        <div class="stat-label">AVERAGE RATING</div>
+                    </div>
+                    <div class="stat-card">
+                        <i class="fas fa-wallet stat-icon"></i>
+                        <div class="stat-value">₹{{ driver_data.stats.total_earnings }}</div>
+                        <div class="stat-label">TOTAL EARNINGS</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <h6 class="chart-title">Weekly Earnings</h6>
+                        <div class="chart-wrapper">
+                            <canvas id="earningsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h6 class="chart-title">Trip Analytics</h6>
+                        <div class="chart-wrapper">
+                            <canvas id="tripsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <h6 class="chart-title">Current Location</h6>
+                        <div id="map"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Vehicle Info Section -->
+            <div class="vehicle-info-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Vehicle Information</h2>
+                    <button class="btn btn-primary update-vehicle-btn">Update Vehicle Info</button>
+                </div>
+                
+                <div class="vehicle-details-container">
+                    <div class="vehicle-info-card">
+                        <div class="car-photos-slider">
+                            <div class="slider-container">
+                                <!-- Photos will be loaded here -->
+                            </div>
+                            <div class="slider-nav">
+                                <button class="prev-btn"><i class="fas fa-chevron-left"></i></button>
+                                <button class="next-btn"><i class="fas fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div class="vehicle-details">
+                            <div class="detail-group">
+                                <label>Car Company</label>
+                                <span class="car-company"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Car Model</label>
+                                <span class="car-model"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Type</label>
+                                <span class="car-type"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Manufacturing Year</label>
+                                <span class="manufacturing-year"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Seating Capacity</label>
+                                <span class="seating-capacity"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Last Updated</label>
+                                <span class="last-updated"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Base Rate (First KM)</label>
+                                <span class="base-rate"></span>
+                            </div>
+                            <div class="detail-group">
+                                <label>Extra KM Rate</label>
+                                <span class="extra-km-rate"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update Vehicle Modal -->
+            <div class="update-vehicle-modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Update Vehicle Information</h2>
+                        <button class="close-modal"><i class="fas fa-times"></i></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="updateVehicleForm" enctype="multipart/form-data">
+                            <div class="form-group">
+                                <label for="car_company">Car Company*</label>
+                                <select class="form-select" id="update_car_company" name="car_company" required>
+                                    <option value="">Select Car Company</option>
+                                    {% for company in car_companies %}
+                                    <option value="{{ company }}">{{ company }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="car_model">Car Model*</label>
+                                <input type="text" class="form-control" id="update_car_model" name="car_model" 
+                                       pattern="[A-Za-z0-9\s]{1,30}" required>
+                                <small>1-30 characters, letters, numbers and spaces only</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="car_type">Type*</label>
+                                <select class="form-select" id="update_car_type" name="car_type" required>
+                                    <option value="">Select Car Type</option>
+                                    <option value="hatchback">Hatchback</option>
+                                    <option value="sedan">Sedan</option>
+                                    <option value="premium_sedan">Premium Sedan</option>
+                                    <option value="suv">SUV</option>
+                                    <option value="premium_suv">Premium SUV</option>
+                                    <option value="crossover">Crossover</option>
+                                    <option value="compact_suv">Compact SUV</option>
+                                    <option value="micro_suv">Micro SUV</option>
+                                    <option value="mpv">MPV</option>
+                                    <option value="premium_mpv">Premium MPV</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="manufacturing_year">Manufacturing Year*</label>
+                                <select class="form-select" id="update_manufacturing_year" name="manufacturing_year" required>
+                                    <option value="">Select Year</option>
+                                    {% for year in range(current_year, 1974, -1) %}
+                                    <option value="{{ year }}">{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="seating_capacity">Seating Capacity*</label>
+                                <input type="number" class="form-control" id="update_seating_capacity" 
+                                       name="seating_capacity" min="4" max="12" required>
+                                <small>Enter a number between 4 and 12</small>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Car Photos (Leave empty to keep current photos)</label>
+                                <div class="file-upload">
+                                    <input type="file" class="form-control" id="update_car_photo_1" 
+                                           name="car_photo_1" accept=".jpg,.jpeg,.png">
+                                    <label for="update_car_photo_1">Choose photo 1</label>
+                                    <div class="selected-file"></div>
+                                    <div class="current-photo">Current: <span></span></div>
+                                </div>
+                                <div class="file-upload">
+                                    <input type="file" class="form-control" id="update_car_photo_2" 
+                                           name="car_photo_2" accept=".jpg,.jpeg,.png">
+                                    <label for="update_car_photo_2">Choose photo 2</label>
+                                    <div class="selected-file"></div>
+                                    <div class="current-photo">Current: <span></span></div>
+                                </div>
+                                <div class="file-upload">
+                                    <input type="file" class="form-control" id="update_car_photo_3" 
+                                           name="car_photo_3" accept=".jpg,.jpeg,.png">
+                                    <label for="update_car_photo_3">Choose photo 3</label>
+                                    <div class="selected-file"></div>
+                                    <div class="current-photo">Current: <span></span></div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Update Vehicle Info</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ratings Section -->
+            <div class="ratings-section" style="display: none;">
+                <div class="section-header">
+                    <h2>Driver Ratings</h2>
+                </div>
+                
+                <div class="ratings-container">
+                    <div class="average-rating">
+                        <div class="rating-number"></div>
+                        <div class="star-display"></div>
+                        <div class="total-ratings"></div>
+                    </div>
+                    
+                    <div class="ratings-list">
+                        <!-- Ratings will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Trips Section -->
+            <div id="activeTripsSection" class="dashboard-section" style="display: none;">
+    <div class="section-header">
+        <h2><i class="fas fa-route"></i> Active Trips</h2>
+    </div>
+    
+    <div id="activeTripsContainer" class="trips-container">
+        <!-- Trips will be loaded here -->
+    </div>
+    <div id="tripMap" style="height: 400px; margin-top: 20px; display: none;"></div>
+</div>
+
+            <!-- Trip History Section -->
+            <div id="tripHistorySection" class="dashboard-section" style="display: none;">
+                <div class="section-header">
+                    <h2><i class="fas fa-history"></i> Trip History</h2>
+                </div>
+                <div id="tripHistoryContainer" class="trips-container">
+                    <!-- Trip history will be loaded here -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Add this right after your <body> tag -->
+    {% if f_status == 0 %}
+    <div class="car-details-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Complete Form to Continue</h2>
+            </div>
+            <div class="modal-body">
+                <form id="carDetailsForm" enctype="multipart/form-data">
+                    <div class="form-group">
+                        <label for="car_company">Car Company*</label>
+                        <select class="form-select" id="car_company" name="car_company" required>
+                            <option value="">Select Car Company</option>
+                            {% for company in car_companies %}
+                            <option value="{{ company }}">{{ company }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="car_model">Car Model*</label>
+                        <input type="text" class="form-control" id="car_model" name="car_model" 
+                               pattern="[A-Za-z0-9\s]{1,30}" required>
+                        <small>1-30 characters, letters, numbers and spaces only</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="car_type">Type*</label>
+                        <select class="form-select" id="car_type" name="car_type" required>
+                            <option value="">Select Car Type</option>
+                            <option value="hatchback">Hatchback</option>
+                            <option value="sedan">Sedan</option>
+                            <option value="premium_sedan">Premium Sedan</option>
+                            <option value="suv">SUV</option>
+                            <option value="premium_suv">Premium SUV</option>
+                            <option value="crossover">Crossover</option>
+                            <option value="compact_suv">Compact SUV</option>
+                            <option value="micro_suv">Micro SUV</option>
+                            <option value="mpv">MPV</option>
+                            <option value="premium_mpv">Premium MPV</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="manufacturing_year">Manufacturing Year*</label>
+                        <select class="form-select" id="manufacturing_year" name="manufacturing_year" required>
+                            <option value="">Select Year</option>
+                            {% for year in range(current_year, 1974, -1) %}
+                            <option value="{{ year }}">{{ year }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="seating_capacity">Seating Capacity*</label>
+                        <input type="number" class="form-control" id="seating_capacity" 
+                               name="seating_capacity" min="4" max="12" required>
+                        <small>Enter a number between 4 and 12</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Car Photos* (JPG, JPEG, or PNG only)</label>
+                        <div class="file-upload">
+                            <input type="file" class="form-control" id="car_photo_1" 
+                                   name="car_photo_1" accept=".jpg,.jpeg,.png" required>
+                            <label for="car_photo_1">Choose photo 1</label>
+                            <div class="selected-file"></div>
+                        </div>
+                        <div class="file-upload">
+                            <input type="file" class="form-control" id="car_photo_2" 
+                                   name="car_photo_2" accept=".jpg,.jpeg,.png" required>
+                            <label for="car_photo_2">Choose photo 2</label>
+                            <div class="selected-file"></div>
+                        </div>
+                        <div class="file-upload">
+                            <input type="file" class="form-control" id="car_photo_3" 
+                                   name="car_photo_3" accept=".jpg,.jpeg,.png" required>
+                            <label for="car_photo_3">Choose photo 3</label>
+                            <div class="selected-file"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Submit</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    <script src="https://maps.gomaps.pro/maps/api/js?key=AlzaSy1HgXScwTBP7kUbiL9rmZ1GWq6CKQve5Ca&libraries=places"></script>
+    <script>
+        // Chart.js Configuration
+        Chart.defaults.color = '#b3b3b3';
+        Chart.defaults.borderColor = '#333333';
+        Chart.defaults.scale.grid.color = '#333333';
+
+        // Earnings Chart
+        const earningsCtx = document.getElementById('earningsChart').getContext('2d');
+        new Chart(earningsCtx, {
+            type: 'line',
+            data: {
+                labels: {{ driver_data.earnings_chart.labels | tojson }},
+                datasets: [{
+                    label: 'Daily Earnings',
+                    data: {{ driver_data.earnings_chart.data | tojson }},
+                    borderColor: '#4CAF50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#b3b3b3'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#b3b3b3'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Trips Chart
+        const tripsCtx = document.getElementById('tripsChart').getContext('2d');
+        new Chart(tripsCtx, {
+            type: 'bar',
+            data: {
+                labels: {{ driver_data.trips_chart.labels | tojson }},
+                datasets: [{
+                    label: 'Daily Trips',
+                    data: {{ driver_data.trips_chart.data | tojson }},
+                    backgroundColor: '#2196F3',
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#b3b3b3'
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#b3b3b3'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Initialize Map with dark theme
+        const map = L.map('map').setView([{{ driver_data.current_location.lat }}, {{ driver_data.current_location.lng }}], 13);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([{{ driver_data.current_location.lat }}, {{ driver_data.current_location.lng }}]).addTo(map);
+
+        // Handle navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (!e.currentTarget.href.includes('logout')) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all nav items
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Hide all sections
+                    document.querySelectorAll('.dashboard-section').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    
+                    // Show selected section
+                    const section = this.getAttribute('data-section');
+                    if (section == 'active-trips') {
+                        document.querySelector('.active-trips-section').style.display = 'block';
+                        loadActiveTrips();
+                    } else if (section == 'dashboard') {
+                        document.querySelector('.dashboard-section').style.display = 'block';
+                    } else if (section == 'vehicle_info') {
+                        document.querySelector('.vehicle-info-section').style.display = 'block';
+                        loadVehicleInfo();
+                    }
+                }
+            });
+        });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('carDetailsForm');
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+
+        // Handle file input changes
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function(e) {
+                const selectedFile = this.parentElement.querySelector('.selected-file');
+                if (this.files && this.files[0]) {
+                    selectedFile.textContent = this.files[0].name;
+                } else {
+                    selectedFile.textContent = '';
+                }
+            });
+        });
+
+        // Handle form submission
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+
+
+            // Create FormData and submit
+            const formData = new FormData(this);
+            
+            fetch('/submit_car_details', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Reload the page to hide the modal (since f_status will be 1)
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                alert('Error submitting form: ' + error);
+            });
+        });
+
+        // Add modal-open class to body when modal is shown
+        if (document.querySelector('.car-details-modal')) {
+            document.body.classList.add('modal-open');
+        }
+    });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentSlide = 0;
+        let carPhotos = [];
+        
+        // Handle navigation clicks
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (!e.currentTarget.href.includes('logout')) {
+                    e.preventDefault();
+                    
+                    // Remove active class from all nav items
+                    document.querySelectorAll('.nav-item').forEach(navItem => {
+                        navItem.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked item
+                    this.classList.add('active');
+                    
+                    // Hide all sections
+                    document.querySelectorAll('.dashboard-section').forEach(section => {
+                        section.style.display = 'none';
+                    });
+                    
+                    // Show selected section
+                    const section = this.getAttribute('data-section');
+                    if (section == 'active-trips') {
+                        document.querySelector('.active-trips-section').style.display = 'block';
+                        loadActiveTrips();
+                    } else if (section == 'dashboard') {
+                        document.querySelector('.dashboard-section').style.display = 'block';
+                    } else if (section == 'vehicle_info') {
+                        document.querySelector('.vehicle-info-section').style.display = 'block';
+                        loadVehicleInfo();
+                    }
+                }
+            });
+        });
+        
+        function loadVehicleInfo() {
+            fetch('/get_vehicle_info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayVehicleInfo(data.data);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        
+        function displayVehicleInfo(data) {
+            // Update text information
+            document.querySelector('.car-company').textContent = data.car_company;
+            document.querySelector('.car-model').textContent = data.car_model;
+            document.querySelector('.car-type').textContent = data.car_type;
+            document.querySelector('.manufacturing-year').textContent = data.manufacturing_year;
+            document.querySelector('.seating-capacity').textContent = data.seating_capacity;
+            document.querySelector('.last-updated').textContent = data.updated_on || 'Not updated';
+            
+            // Setup photo slider
+            carPhotos = data.car_photos;
+            const sliderContainer = document.querySelector('.slider-container');
+            sliderContainer.innerHTML = '';
+            
+            carPhotos.forEach((photo, index) => {
+                const img = document.createElement('img');
+                img.src = `/static/images/cars/${photo}`;
+                img.classList.toggle('active', index == 0);
+                sliderContainer.appendChild(img);
+            });
+
+            document.querySelector('.base-rate').textContent = `₹${data.base_rate}`;
+            document.querySelector('.extra-km-rate').textContent = `₹${data.extra_km_rate}`;
+        }
+        
+        // Photo slider navigation
+        document.querySelector('.prev-btn').addEventListener('click', () => {
+            currentSlide = (currentSlide - 1 + carPhotos.length) % carPhotos.length;
+            updateSlider();
+        });
+        
+        document.querySelector('.next-btn').addEventListener('click', () => {
+            currentSlide = (currentSlide + 1) % carPhotos.length;
+            updateSlider();
+        });
+        
+        function updateSlider() {
+            const images = document.querySelectorAll('.slider-container img');
+            images.forEach((img, index) => {
+                img.classList.toggle('active', index == currentSlide);
+            });
+        }
+        
+        // Update vehicle modal handling
+        document.querySelector('.update-vehicle-btn').addEventListener('click', () => {
+            document.querySelector('.update-vehicle-modal').style.display = 'flex';
+            
+            // Fetch current vehicle data
+            fetch('/get_vehicle_info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Pre-fill the form with current data
+                        const formData = data.data;
+                        
+                        // Set select values
+                        document.getElementById('update_car_company').value = formData.car_company;
+                        document.getElementById('update_car_type').value = formData.car_type;
+                        document.getElementById('update_manufacturing_year').value = formData.manufacturing_year;
+                        
+                        // Set input values
+                        document.getElementById('update_car_model').value = formData.car_model;
+                        document.getElementById('update_seating_capacity').value = formData.seating_capacity;
+                        
+                        // Show current photo names
+                        formData.car_photos.forEach((photo, index) => {
+                            const currentPhotoSpan = document.querySelector(
+                                `.file-upload:nth-child(${index + 1}) .current-photo span`
+                            );
+                            currentPhotoSpan.textContent = photo;
+                        });
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        });
+        
+        // Close modal
+        document.querySelector('.close-modal').addEventListener('click', () => {
+            document.querySelector('.update-vehicle-modal').style.display = 'none';
+        });
+        
+        // File input change handlers
+        document.querySelectorAll('input[type="file"]').forEach(input => {
+            input.addEventListener('change', function(e) {
+                const selectedFile = this.parentElement.querySelector('.selected-file');
+                if (this.files && this.files[0]) {
+                    selectedFile.textContent = this.files[0].name;
+                } else {
+                    selectedFile.textContent = '';
+                }
+            });
+        });
+    });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const updateForm = document.getElementById('updateVehicleForm');
+        if (updateForm) {
+            updateForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalBtnText = submitBtn.textContent;
+                submitBtn.textContent = 'Updating...';
+                submitBtn.disabled = true;
+                
+                const formData = new FormData(this);
+                
+                fetch('/update_vehicle_info', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message with SweetAlert2
+                        Swal.fire({
+                            title: 'Success!',
+                            text: 'Vehicle information updated successfully',
+                            icon: 'success',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#28a745',
+                            background: '#1a1a1a',
+                            color: '#fff'
+                        }).then((result) => {
+                            // Hide modal
+                            document.querySelector('.update-vehicle-modal').style.display = 'none';
+                            // Reload vehicle info
+                            loadVehicleInfo();
+                        });
+                    } else {
+                        // Show error message with SweetAlert2
+                        Swal.fire({
+                            title: 'Error!',
+                            text: data.message || 'Failed to update vehicle information',
+                            icon: 'error',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#dc3545',
+                            background: '#1a1a1a',
+                            color: '#fff'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    // Show error message with SweetAlert2
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Error updating vehicle information: ' + error,
+                        icon: 'error',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#dc3545',
+                        background: '#1a1a1a',
+                        color: '#fff'
+                    });
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitBtn.textContent = originalBtnText;
+                    submitBtn.disabled = false;
+                });
+            });
+        }
+
+        // Function to load vehicle info
+        function loadVehicleInfo() {
+            fetch('/get_vehicle_info')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayVehicleInfo(data.data);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        // Function to display vehicle info
+        function displayVehicleInfo(data) {
+            document.querySelector('.car-company').textContent = data.car_company;
+            document.querySelector('.car-model').textContent = data.car_model;
+            document.querySelector('.car-type').textContent = data.car_type;
+            document.querySelector('.manufacturing-year').textContent = data.manufacturing_year;
+            document.querySelector('.seating-capacity').textContent = data.seating_capacity;
+            document.querySelector('.last-updated').textContent = data.updated_on || 'Not updated';
+            
+            // Update photo slider
+            updatePhotoSlider(data.car_photos);
+
+            document.querySelector('.base-rate').textContent = `₹${data.base_rate}`;
+            document.querySelector('.extra-km-rate').textContent = `₹${data.extra_km_rate}`;
+        }
+
+        // Function to update photo slider
+        function updatePhotoSlider(photos) {
+            const sliderContainer = document.querySelector('.slider-container');
+            sliderContainer.innerHTML = '';
+            
+            photos.forEach((photo, index) => {
+                const img = document.createElement('img');
+                img.src = `/static/images/cars/${photo}`;
+                img.classList.toggle('active', index == 0);
+                sliderContainer.appendChild(img);
+            });
+        }
+    });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle availability toggle
+        const availabilityToggle = document.getElementById('availabilityToggle');
+        if (availabilityToggle) {
+            // Update status when toggle changes
+            availabilityToggle.addEventListener('change', function() {
+                const status = this.checked ? 1 : 0;
+                updateDriverStatus(status);
+            });
+
+            // Set initial status to 1 (available) when page loads
+            updateDriverStatus(1);
+        }
+
+        function updateDriverStatus(status) {
+            fetch('/update_driver_live_status', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: status })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const statusText = status == 1 ? 'Available' : 'Unavailable';
+                    console.log(`Driver status updated: ${statusText}`);
+                } else {
+                    console.error('Failed to update status:', data.message);
+                    // Revert toggle if update failed
+                    availabilityToggle.checked = !availabilityToggle.checked;
+                }
+            })
+            .catch(error => {
+                console.error('Error updating status:', error);
+                // Revert toggle if update failed
+                availabilityToggle.checked = !availabilityToggle.checked;
+            });
+        }
+
+        // Handle page unload/logout
+        window.addEventListener('beforeunload', function() {
+            // Update status to 0 when leaving page
+            updateDriverStatus(0);
+        });
+    });
+    </script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load and display ratings
+        function loadRatings() {
+            fetch('/get_driver_ratings')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateRatingsDisplay(data.ratings, data.average_rating);
+                    }
+                })
+                .catch(error => console.error('Error loading ratings:', error));
+        }
+
+        function updateRatingsDisplay(ratings, averageRating) {
+            // Update stats card rating
+            document.querySelector('.rating-value').textContent = averageRating;
+            
+            // Update ratings section
+            const ratingNumber = document.querySelector('.rating-number');
+            const starDisplay = document.querySelector('.star-display');
+            const totalRatings = document.querySelector('.total-ratings');
+            const ratingsList = document.querySelector('.ratings-list');
+            
+            ratingNumber.textContent = averageRating;
+            starDisplay.innerHTML = getStarDisplay(averageRating);
+            
+            const ratingsCount = ratings ? Object.keys(ratings).length : 0;
+            totalRatings.textContent = `Based on ${ratingsCount} ratings`;
+            
+            // Clear and populate ratings list
+            ratingsList.innerHTML = '';
+            if (ratings) {
+                Object.entries(ratings).forEach(([key, rating]) => {
+                    const ratingCard = document.createElement('div');
+                    ratingCard.className = 'rating-card';
+                    ratingCard.innerHTML = `
+                        <div class="rater-info">${rating.rater_id}</div>
+                        <div class="rating-stars">${getStarDisplay(rating.rating)}</div>
+                        <div class="rating-date">${formatDate(rating.timestamp)}</div>
+                    `;
+                    ratingsList.appendChild(ratingCard);
+                });
+            }
+        }
+
+        function getStarDisplay(rating) {
+            const fullStars = Math.floor(rating);
+            const hasHalfStar = rating % 1 >= 0.5;
+            let stars = '';
+            
+            for (let i = 0; i < fullStars; i++) {
+                stars += '<i class="fas fa-star"></i>';
+            }
+            if (hasHalfStar) {
+                stars += '<i class="fas fa-star-half-alt"></i>';
+            }
+            const emptyStars = 5 - Math.ceil(rating);
+            for (let i = 0; i < emptyStars; i++) {
+                stars += '<i class="far fa-star"></i>';
+            }
+            
+            return stars;
+        }
+
+        function formatDate(timestamp) {
+            return new Date(timestamp).toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
+            });
+        }
+
+        // Load ratings when page loads
+        loadRatings();
+        
+        // Reload ratings every 5 minutes
+        setInterval(loadRatings, 300000);
+    });
+
+    function showActiveTrips() {
+        // Hide other sections and show active trips
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById('activeTripsSection').style.display = 'block';
+        
+        // Load active trips
+        loadActiveTrips();
+    }
+
+    function loadActiveTrips() {
+        const container = document.getElementById('activeTripsContainer');
+        container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading trips...</div>';
+
+        fetch('/get_driver_trips')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.trips && data.trips.length > 0) {
+                        displayActiveTrips(data.trips);
+                    } else {
+                        container.innerHTML = `
+                            <div class="no-trips">
+                                <i class="fas fa-route fa-3x mb-3"></i>
+                                <p>No active trips found</p>
+                            </div>`;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Error loading trips: ${data.error}</p>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Error loading trips</p>
+                    </div>`;
+            });
+    }
+
+
+    function getStatusBadge(trip) {
+    let status = '';
+    let color = '';
+    
+    if (trip.trip_status == 2) {
+        status = 'Completed';
+        color = '#4CAF50';
+    } else if (trip.trip_status == 1) {
+        status = 'In Progress';
+        color = '#2196F3';
+    } else if (trip.booking_status == 1) {
+        status = 'Accepted';
+        color = '#FF9800';
+    } else {
+        status = 'New Request';
+        color = '#9C27B0';
+    }
+    
+    return `<span class="status-badge" style="background-color: ${color}">${status}</span>`;
+}
+
+// Update the getTripActions function
+
+// Add this CSS to ensure the buttons are styled correctly
+<style>
+.trip-actions {
+    margin-top : 15px;
+}
+
+.trip-button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.accept-button {
+    background: #4CAF50;
+    color: white;
+}
+
+.start-button {
+    background: #2196F3;
+    color: white;
+}
+
+.trip-button:hover {
+    opacity: 0.9;
+}
+</style>
+
+// Update the displayActiveTrips function to ensure trip actions are included
+
+
+   
+
+    // Initialize map and route display functions
+    function initMap() {
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer();
+        map = new google.maps.Map(document.getElementById('tripMap'), {
+            zoom: 14,
+            center: { lat: YOUR_DEFAULT_LAT, lng: YOUR_DEFAULT_LNG }
+        });
+        directionsRenderer.setMap(map);
+    }
+
+
+
+    function showRouteToDestination(bookingId) {
+        document.getElementById('tripMap').style.display = 'block';
+        // Add your route display logic here
+    }
+
+    // Format date helper
+    function formatDateTime(dateString) {
+        if (!dateString) return 'Unknown';
+        return new Date(dateString).toLocaleString();
+    }
+
+    // Add payment status check
+    function checkPaymentStatus() {
+        // Implement periodic payment status check
+    }
+    </script>
+    <script>
+    // Global variables
+    let map;
+    let directionsService;
+    let directionsRenderer;
+
+    // Navigation function
+    function showActiveTrips() {
+        // Hide other sections and show active trips
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        document.getElementById('activeTripsSection').style.display = 'block';
+        
+        // Load active trips
+        loadActiveTrips();
+    }
+
+    function loadActiveTrips() {
+        const container = document.getElementById('activeTripsContainer');
+        container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading trips...</div>';
+
+        fetch('/get_driver_trips')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.trips && data.trips.length > 0) {
+                        displayActiveTrips(data.trips);
+                    } else {
+                        container.innerHTML = `
+                            <div class="no-trips">
+                                <i class="fas fa-route fa-3x mb-3"></i>
+                                <p>No active trips found</p>
+                            </div>`;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Error loading trips: ${data.error}</p>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Error loading trips</p>
+                    </div>`;
+            });
+    }
+
+ 
+    function getStatusBadge(trip) {
+    let status = '';
+    let color = '';
+    
+    if (trip.trip_status == 2) {
+        status = 'Completed';
+        color = '#4CAF50';
+    } else if (trip.trip_status == 1) {
+        status = 'In Progress';
+        color = '#2196F3';
+    } else if (trip.booking_status == 1) {
+        status = 'Accepted';
+        color = '#FF9800';
+    } else {
+        status = 'New Request';
+        color = '#9C27B0';
+    }
+    
+    return `<span class="status-badge" style="background-color: ${color}">${status}</span>`;
+}
+
+
+
+
+    // Initialize map and route display functions
+    function initMap() {
+        directionsService = new google.maps.DirectionsService();
+        directionsRenderer = new google.maps.DirectionsRenderer();
+        map = new google.maps.Map(document.getElementById('tripMap'), {
+            zoom: 14,
+            center: { lat: YOUR_DEFAULT_LAT, lng: YOUR_DEFAULT_LNG }
+        });
+        directionsRenderer.setMap(map);
+    }
+
+
+
+    function showRouteToDestination(bookingId) {
+        document.getElementById('tripMap').style.display = 'block';
+        // Add your route display logic here
+    }
+
+    // Format date helper
+    function formatDateTime(dateString) {
+        if (!dateString) return 'Unknown';
+        return new Date(dateString).toLocaleString();
+    }
+
+    // Add payment status check
+    function checkPaymentStatus() {
+        // Implement periodic payment status check
+    }
+    </script>
+    <script>
+    // Navigation handler function
+    function handleNavigation(event, section) {
+        event.preventDefault();
+        
+        // Remove active class from all nav links
+        document.querySelectorAll('.nav-item').forEach(link => {
+            link.classList.remove('active');
+        });
+        
+        // Add active class to clicked link
+        event.currentTarget.classList.add('active');
+        
+        // Hide all sections
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show selected section
+        if (section == 'active-trips') {
+            document.querySelector('.active-trips-section').style.display = 'block';
+            loadActiveTrips();
+        }
+    }
+    </script>
+    <script>
+        // Add these functions to your existing JavaScript
+        let watchId; // For tracking geolocation updates
+        
+        function startLocationTracking() {
+            if ("geolocation" in navigator) {
+                watchId = navigator.geolocation.watchPosition(
+                    updateDriverLocation,
+                    handleLocationError,
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                console.error("Geolocation is not supported by this browser.");
+            }
+        }
+        
+        function updateDriverLocation(position) {
+            const location = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+                last_updated: new Date().toISOString()
+            };
+        
+            // Send location update to server
+            fetch('/update_driver_location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(location)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Failed to update location:', data.message);
+                }
+            })
+            .catch(error => console.error('Error updating location:', error));
+        }
+        
+        function handleLocationError(error) {
+            console.error('Error getting location:', error.message);
+        }
+        
+        // Start tracking when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            startLocationTracking();
+        });
+        
+        // Stop tracking when page is closed
+        window.addEventListener('beforeunload', function() {
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        });
+        </script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to show active trips
+    function showActiveTrips() {
+        // Hide all sections
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show active trips section
+        document.getElementById('activeTripsSection').style.display = 'block';
+        
+        // Load active trips
+        loadActiveTrips();
+    }
+
+    // Add click handler for the active trips nav item
+    document.querySelector('[data-section="active-trips"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        // Remove active class from all nav items
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Add active class to this nav item
+        this.classList.add('active');
+        
+        // Show active trips section
+        showActiveTrips();
+    });
+
+    // Function to load active trips
+    function loadActiveTrips() {
+        const container = document.getElementById('activeTripsContainer');
+        container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading trips...</div>';
+        
+        fetch('/get_driver_trips')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    if (data.trips && data.trips.length > 0) {
+                        displayActiveTrips(data.trips);
+                    } else {
+                        container.innerHTML = `
+                            <div class="no-trips">
+                                <i class="fas fa-route fa-3x mb-3"></i>
+                                <p>No active trips found</p>
+                            </div>`;
+                    }
+                } else {
+                    container.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                            <p>Error loading trips: ${data.error}</p>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle fa-3x mb-3"></i>
+                        <p>Error loading trips</p>
+                    </div>`;
+            });
+    }
+
+    // Function to display active trips
+    
+</script>
+<script>
+// Add this before the displayActiveTrips function
+function getStatusBadge(trip) {
+    let status = '';
+    let color = '';
+    
+    if (trip.trip_status == 2) {
+        status = 'Completed';
+        color = '#4CAF50';
+    } else if (trip.trip_status == 1) {
+        status = 'In Progress';
+        color = '#2196F3';
+    } else if (trip.booking_status == 1) {
+        status = 'Accepted';
+        color = '#FF9800';
+    } else {
+        status = 'New Request';
+        color = '#9C27B0';
+    }
+    
+    return `<span class="status-badge" style="background-color: ${color}">${status}</span>`;
+}
+
+
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to handle section display
+    function showSection(sectionId) {
+        // Hide all sections
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            if (section) {
+                section.style.display = 'none';
+            }
+        });
+
+        // Show the selected section
+        const selectedSection = document.getElementById(sectionId);
+        if (selectedSection) {
+            selectedSection.style.display = 'block';
+            
+            // If showing active trips, load them
+            if (sectionId == 'activeTripsSection') {
+                loadActiveTrips();
+            }
+        }
+    }
+
+    // Navigation click handlers
+    document.querySelectorAll('.nav-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.getAttribute('href') == '#') {
+                e.preventDefault();
+                
+                // Remove active class from all nav links
+                document.querySelectorAll('.nav-link').forEach(navLink => {
+                    navLink.classList.remove('active');
+                });
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Show corresponding section
+                const section = this.getAttribute('data-section');
+                if (section == 'active-trips') {
+                    showSection('activeTripsSection');
+                }
+            }
+        });
+    });
+
+    // Initialize first section
+    showSection('activeTripsSection');
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to show active trips section
+    function showActiveTrips() {
+        // Hide all sections
+        document.querySelectorAll('.dashboard-section').forEach(section => {
+            section.style.display = 'none';
+        });
+        
+        // Show active trips section and map
+        const activeTripsSection = document.getElementById('activeTripsSection');
+        if (activeTripsSection) {
+            activeTripsSection.style.display = 'block';
+            loadActiveTrips();
+        }
+    }
+
+    // Add click handler for navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Remove active class from all items
+            document.querySelectorAll('.nav-item').forEach(navItem => {
+                navItem.classList.remove('active');
+            });
+            
+            // Add active class to clicked item
+            this.classList.add('active');
+            
+            // Show appropriate section
+            const section = this.getAttribute('data-section');
+            if (section == 'active-trips') {
+                showActiveTrips();
+            }
+        });
+    });
+
+    // Helper function for date formatting
+    function formatDateTime(dateString) {
+        if (!dateString) return 'Unknown';
+        const date = new Date(dateString);
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    // Function to display active trips
+ 
+    // Function to get status badge
+    function getStatusBadge(trip) {
+        let status = '';
+        let color = '';
+        
+        if (trip.trip_status == 2) {
+            status = 'Completed';
+            color = '#4CAF50';
+        } else if (trip.trip_status == 1) {
+            status = 'In Progress';
+            color = '#2196F3';
+        } else if (trip.booking_status == 1) {
+            status = 'Accepted';
+            color = '#FF9800';
+        } else {
+            status = 'New Request';
+            color = '#9C27B0';
+        }
+        
+        return `<span class="status-badge" style="background-color: ${color}">${status}</span>`;
+    }
+
+
+    // Function to load active trips
+    function loadActiveTrips() {
+        const container = document.getElementById('activeTripsContainer');
+        if (!container) return;
+
+        container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading trips...</div>';
+
+        fetch('/get_driver_trips')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayActiveTrips(data.trips);
+                } else {
+                    container.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>${data.error || 'Error loading trips'}</p>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Error loading trips</p>
+                    </div>`;
+            });
+    }
+
+    // Initialize active trips section if it's the current section
+    const activeTripsNav = document.querySelector('[data-section="active-trips"]');
+    if (activeTripsNav && activeTripsNav.classList.contains('active')) {
+        showActiveTrips();
+    }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+
+// Function to upda
+</script>
+<script>
+// Global function declarations
+function loadActiveTrips() {
+    const container = document.getElementById('activeTripsContainer');
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading trips...</div>';
+
+    fetch('/get_driver_trips')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayActiveTrips(data.trips);
+            } else {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>${data.error || 'Error loading trips'}</p>
+                    </div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading trips</p>
+                </div>`;
+        });
+}
+
+function displayActiveTrips(trips) {
+    const container = document.getElementById('activeTripsContainer');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (!trips || trips.length == 0) {
+        container.innerHTML = `
+            <div class="no-trips">
+                <i class="fas fa-route fa-3x mb-3"></i>
+                <p>No active trips found</p>
+            </div>`;
+        return;
+    }
+
+    // Filter out trips with payment_status = 1
+    const activeTrips = trips.filter(trip => trip.payment_status !== 1);
+
+    if (activeTrips.length == 0) {
+        container.innerHTML = `
+            <div class="no-trips">
+                <i class="fas fa-route fa-3x mb-3"></i>
+                <p>No active trips found</p>
+            </div>`;
+        return;
+    }
+
+    activeTrips.forEach(trip => {
+        const card = document.createElement('div');
+        card.className = 'trip-card';
+        // Add data attributes for locations and status
+        card.dataset.bookingId = trip.booking_id;
+        card.dataset.fromLocation = trip.from_location;
+        card.dataset.toLocation = trip.to_location;
+        card.dataset.status = trip.booking_status == 1 ? 'accepted' : 'pending';
+        
+        card.innerHTML = `
+            <div class="passenger-info">
+                <img src="/static/images/${trip.user_image}" 
+                     alt="Passenger" 
+                     class="passenger-photo"
+                     onerror="this.src='/static/images/default.jpg'">
+                <div class="passenger-details">
+                    <h4>${trip.user_name}</h4>
+                    <small>Booked: ${formatDateTime(trip.booking_time)}</small>
+                    ${getStatusBadge(trip)}
+                </div>
+            </div>
+            <div class="location-info">
+                <p><i class="fas fa-map-marker-alt"></i> From: ${trip.from_location}</p>
+                <p><i class="fas fa-map-pin"></i> To: ${trip.to_location}</p>
+                <p><i class="fas fa-indian-rupee-sign"></i> Fare: ₹${trip.trip_amount}</p>
+            </div>
+            ${getTripActions(trip)}
+        `;
+        container.appendChild(card);
+    });
+}
+
+function getTripActions(trip) {
+    if (trip.booking_status == 0) {
+        return `
+            <div class="trip-actions">
+                <button class="trip-button accept-button" 
+                        onclick="updateTripStatus('${trip.booking_id}', 'booking_status', 1)">
+                    Accept Request
+                </button>
+            </div>`;
+    } else if (trip.booking_status == 1 && trip.trip_status == 0) {
+        return `
+            <div class="trip-actions">
+                <button class="trip-button start-button" 
+                        onclick="showRouteToPickup('${trip.booking_id}', '${trip.from_location}')">
+                    Start Trip
+                </button>
+            </div>`;
+    }
+    return '';
+}
+function showRouteToPickup(bookingId, destination) {
+    try {
+        // Show map modal first
+        const mapModal = document.getElementById('mapModal');
+        mapModal.style.display = 'flex';
+
+        // Initialize map if not already done
+        if (!routeMap) {
+            initRouteMap();
+        }
+
+        // Get current location
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const origin = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+
+                    // Convert destination address to coordinates using Geocoding service
+                    const geocoder = new google.maps.Geocoder();
+                    geocoder.geocode({ address: destination }, (results, status) => {
+                        if (status == 'OK') {
+                            const destinationLocation = results[0].geometry.location;
+
+                            const request = {
+                                origin: new google.maps.LatLng(origin.lat, origin.lng),
+                                destination: destinationLocation,
+                                travelMode: google.maps.TravelMode.DRIVING
+                            };
+
+                            routeDirectionsService.route(request, (result, status) => {
+                                if (status == 'OK') {
+                                    routeDirectionsRenderer.setDirections(result);
+                                    routeMap.fitBounds(result.routes[0].bounds);
+                                    
+                                    // Update trip status after successfully showing route
+                                    updateTripStatus(bookingId, 'trip_status', 1);
+                                } else {
+                                    console.error('Directions request failed due to ' + status);
+                                    Swal.fire({
+                                        title: 'Error!',
+                                        text: 'Failed to calculate route. Please try again.',
+                                        icon: 'error',
+                                        background: '#1a1a1a',
+                                        color: '#fff'
+                                    });
+                                }
+                            });
+                        } else {
+                            console.error('Geocoding failed due to: ' + status);
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'Failed to locate destination address',
+                                icon: 'error',
+                                background: '#1a1a1a',
+                                color: '#fff'
+                            });
+                        }
+                    });
+                },
+                (error) => {
+                    console.error('Geolocation error:', error);
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to get current location',
+                        icon: 'error',
+                        background: '#1a1a1a',
+                        color: '#fff'
+                    });
+                }
+            );
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: 'Geolocation is not supported by this browser',
+                icon: 'error',
+                background: '#1a1a1a',
+                color: '#fff'
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to show route',
+            icon: 'error',
+            background: '#1a1a1a',
+            color: '#fff'
+        });
+    }
+}
+async function acceptRequest(bookingId, destination) {
+    try {
+        // Update booking status
+        const response = await fetch('/update_trip_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                booking_id: bookingId,
+                status_type: 'booking_status',
+                new_status: 1
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Get current location
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position) => {
+                    // Show map modal
+                    const mapModal = document.getElementById('mapModal');
+                    mapModal.style.display = 'flex';
+
+                    // Initialize route on map
+                    const request = {
+                        origin: new google.maps.LatLng(position.coords.latitude, position.coords.longitude),
+                        destination: destination,
+                        travelMode: 'DRIVING'
+                    };
+
+                    routeDirectionsService.route(request, (result, status) => {
+                        if (status == 'OK') {
+                            routeDirectionsRenderer.setDirections(result);
+                            routeMap.fitBounds(result.routes[0].bounds);
+                        }
+                    });
+                });
+            }
+
+            // Refresh trips list
+            loadActiveTrips();
+        }
+    } catch (error) {
+        console.error('Error:', error);
+    }
+}
+
+function updateTripStatus(bookingId, statusType, newStatus) {
+    fetch('/update_trip_status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            booking_id: bookingId,
+            status: newStatus
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            loadActiveTrips(); // Refresh the trips list
+            Swal.fire({
+                title: 'Success!',
+                text: statusType == 'booking_status' ? 'Request accepted successfully' : 'Trip started successfully',
+                icon: 'success',
+                background: '#1a1a1a',
+                color: '#fff'
+            });
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.error || 'Failed to update status',
+                icon: 'error',
+                background: '#1a1a1a',
+                color: '#fff'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to update status',
+            icon: 'error',
+            background: '#1a1a1a',
+            color: '#fff'
+        });
+    });
+}
+
+// Helper functions
+function formatDateTime(dateString) {
+    if (!dateString) return 'Unknown';
+    return new Date(dateString).toLocaleString();
+}
+
+function getStatusBadge(trip) {
+    let status = '';
+    let color = '';
+    
+    if (trip.trip_status == 2) {
+        status = 'Completed';
+        color = '#4CAF50';
+    } else if (trip.trip_status == 1) {
+        status = 'In Progress';
+        color = '#2196F3';
+    } else if (trip.booking_status == 1) {
+        status = 'Accepted';
+        color = '#FF9800';
+    } else {
+        status = 'New Request';
+        color = '#9C27B0';
+    }
+    
+    return `<span class="status-badge" style="background-color: ${color}">${status}</span>`;
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const activeTripsSection = document.getElementById('activeTripsSection');
+    if (activeTripsSection && activeTripsSection.style.display !== 'none') {
+        loadActiveTrips();
+    }
+});
+</script>
+<!-- Add this modal div -->
+<div id="mapModal" class="map-modal">
+    <div class="map-container">
+        <div id="routeMap"></div>
+        <button id="startRideButton" class="ride-start-button" onclick="startRide()">
+            <i class="fas fa-play"></i> Start Ride
+        </button>
+    </div>
+</div>
+<div id="paymentModal" class="payment-modal">
+    <div class="payment-container">
+        <h3>Complete Payment</h3>
+        <div id="qr-container"></div>
+        <div class="payment-amount">Amount: ₹<span id="paymentAmount">0</span></div>
+        <button id="completePaymentButton" class="payment-button" onclick="completePayment()">
+            Complete Payment
+        </button>
+    </div>
+</div>
+<script>
+    function startRide() {
+    const activeBooking = document.querySelector('.trip-card[data-status="accepted"]');
+    if (!activeBooking) return;
+
+    const bookingId = activeBooking.dataset.bookingId;
+    const fromLocation = activeBooking.dataset.fromLocation;
+    const toLocation = activeBooking.dataset.toLocation;
+
+    // Update trip status in database
+    fetch('/update_trip_status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            booking_id: bookingId,
+            status: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show route to destination
+            const request = {
+                origin: fromLocation,
+                destination: toLocation,
+                travelMode: 'DRIVING'
+            };
+
+            routeDirectionsService.route(request, (result, status) => {
+                if (status == 'OK') {
+                    routeDirectionsRenderer.setDirections(result);
+                    routeMap.fitBounds(result.routes[0].bounds);
+
+                    // Update the button to Complete Trip
+                    const startRideButton = document.getElementById('startRideButton');
+                    startRideButton.innerHTML = `
+                        <i class="fas fa-flag-checkered"></i> Complete Trip
+                    `;
+                    startRideButton.onclick = () => showPaymentQR(bookingId);
+                }
+            });
+
+            loadActiveTrips();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to start trip',
+            icon: 'error',
+            background: '#1a1a1a',
+            color: '#fff'
+        });
+    });
+}
+function showPaymentQR(bookingId) {
+    // Close map modal
+    document.getElementById('mapModal').style.display = 'none';
+
+    // Get trip amount from database
+    fetch(`/get_trip_amount/${bookingId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show payment modal
+                const paymentModal = document.getElementById('paymentModal');
+                document.getElementById('paymentAmount').textContent = data.amount;
+                
+                // Generate Stripe QR code
+                fetch('/create_payment_intent', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        booking_id: bookingId,
+                        amount: data.amount
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Display QR code
+                        const qrContainer = document.getElementById('qr-container');
+                        qrContainer.innerHTML = `<img src="${data.qr_code_url}" alt="Payment QR Code">`;
+                        paymentModal.style.display = 'flex';
+                    }
+                });
+            }
+        });
+}
+
+function completePayment() {
+    const activeBooking = document.querySelector('.trip-card[data-status="accepted"]');
+    if (!activeBooking) return;
+
+    const bookingId = activeBooking.dataset.bookingId;
+
+    fetch('/update_payment_status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            booking_id: bookingId,
+            payment_status: 1
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Close payment modal
+            document.getElementById('paymentModal').style.display = 'none';
+            
+            Swal.fire({
+                title: 'Success!',
+                text: 'Payment completed successfully',
+                icon: 'success',
+                background: '#1a1a1a',
+                color: '#fff'
+            });
+
+            // Refresh trips list
+            loadActiveTrips();
+        } else {
+            throw new Error(data.message || 'Failed to update payment status');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: error.message || 'Failed to complete payment',
+            icon: 'error',
+            background: '#1a1a1a',
+            color: '#fff'
+        });
+    });
+}
+let currentDriverLat = null;
+let currentDriverLng = null;
+let routeMap = null;
+let routeDirectionsService = null;
+let routeDirectionsRenderer = null;
+
+// Initialize map related services
+function initRouteMap() {
+    routeDirectionsService = new google.maps.DirectionsService();
+    routeDirectionsRenderer = new google.maps.DirectionsRenderer();
+    routeMap = new google.maps.Map(document.getElementById('routeMap'), {
+        zoom: 12,
+        center: { lat: 20.5937, lng: 78.9629 }, // Default center (India)
+        styles: [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }
+        ]
+    });
+    routeDirectionsRenderer.setMap(routeMap);
+}
+
+// Function to get current location
+function getCurrentLocation() {
+    return new Promise((resolve, reject) => {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    currentDriverLat = position.coords.latitude;
+                    currentDriverLng = position.coords.longitude;
+                    resolve({ lat: currentDriverLat, lng: currentDriverLng });
+                },
+                (error) => {
+                    reject(error);
+                }
+            );
+        } else {
+            reject(new Error("Geolocation is not supported"));
+        }
+    });
+}
+
+// Function to handle request acceptance and show map
+async function acceptRequest(bookingId, destination) {
+    try {
+        // First, update the booking status
+        const response = await fetch('/update_trip_status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                booking_id: bookingId,
+                status_type: 'booking_status',
+                new_status: 1
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // Get current location and show map
+            const currentLocation = await getCurrentLocation();
+            
+            // Initialize map if not already initialized
+            if (!routeMap) {
+                initRouteMap();
+            }
+
+            // Show the map modal
+            document.getElementById('mapModal').style.display = 'flex';
+
+            // Get route
+            const request = {
+                origin: new google.maps.LatLng(currentLocation.lat, currentLocation.lng),
+                destination: destination,
+                travelMode: 'DRIVING'
+            };
+
+            routeDirectionsService.route(request, (result, status) => {
+                if (status == 'OK') {
+                    routeDirectionsRenderer.setDirections(result);
+                    routeMap.fitBounds(result.routes[0].bounds);
+                } else {
+                    console.error('Directions request failed due to ' + status);
+                }
+            });
+
+            // Refresh the trips list
+            loadActiveTrips();
+        } else {
+            Swal.fire({
+                title: 'Error!',
+                text: data.error || 'Failed to accept request',
+                icon: 'error',
+                background: '#1a1a1a',
+                color: '#fff'
+            });
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error!',
+            text: 'Failed to process request',
+            icon: 'error',
+            background: '#1a1a1a',
+            color: '#fff'
+        });
+    }
+}
+
+// Initialize maps when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize Google Maps
+    initRouteMap();
+    
+    // Other existing initialization code...
+});
+// Add this to your existing JavaScript in driver_dashboard.html
+function showTripHistory() {
+    // Hide all sections
+    document.querySelectorAll('.dashboard-section').forEach(section => {
+        section.style.display = 'none';
+    });
+    
+    // Show trip history section
+    document.getElementById('tripHistorySection').style.display = 'block';
+    
+    // Load trip history
+    loadTripHistory();
+}
+
+function loadTripHistory() {
+    const container = document.getElementById('tripHistoryContainer');
+    container.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Loading trip history...</div>';
+
+    fetch('/get_trip_history')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                displayTripHistory(data.trips);
+            } else {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>${data.error || 'Error loading trip history'}</p>
+                    </div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            container.innerHTML = `
+                <div class="error-message">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <p>Error loading trip history</p>
+                </div>`;
+        });
+}
+
+function displayTripHistory(trips) {
+    const container = document.getElementById('tripHistoryContainer');
+    container.innerHTML = '';
+
+    if (!trips || trips.length == 0) {
+        container.innerHTML = `
+            <div class="no-trips">
+                <i class="fas fa-route fa-3x mb-3"></i>
+                <p>No completed trips found</p>
+            </div>`;
+        return;
+    }
+
+    trips.forEach(trip => {
+        const card = document.createElement('div');
+        card.className = 'trip-card';
+        card.innerHTML = `
+            <div class="passenger-info">
+                <img src="/static/images/${trip.user_image}" 
+                     alt="Passenger" 
+                     class="passenger-photo"
+                     onerror="this.src='/static/images/default.jpg'">
+                <div class="passenger-details">
+                    <h4>${trip.user_name}</h4>
+                    <small>Completed: ${formatDateTime(trip.booking_time)}</small>
+                    <span class="completed-badge">Trip Completed Successfully</span>
+                </div>
+            </div>
+            <div class="location-info">
+                <p><i class="fas fa-map-marker-alt"></i> From: ${trip.from_location}</p>
+                <p><i class="fas fa-map-pin"></i> To: ${trip.to_location}</p>
+                <p><i class="fas fa-indian-rupee-sign"></i> Fare: ₹${trip.trip_amount}</p>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+}
+
+// Add click handler for trip history nav item
+document.querySelector('[data-section="trip_history"]').addEventListener('click', function(e) {
+    e.preventDefault();
+    
+    // Remove active class from all nav items
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // Add active class to this nav item
+    this.classList.add('active');
+    
+    // Show trip history section
+    showTripHistory();
+});
+</script>
+<script src="https://maps.gomaps.pro/maps/api/js?key=AlzaSyhfU1ihe_RVFLNGZVWx5zMkZ38LDiw1O-f&libraries=places"></script>

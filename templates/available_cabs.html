@@ -1,0 +1,1154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Cabs</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: #121212;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .cab-finder-container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+
+        .search-section {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .location-inputs {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .input-group input {
+            background: #2d2d2d;
+            border: 1px solid #333;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            width: 100%;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #009be3;
+            box-shadow: 0 0 0 2px rgba(0, 155, 227, 0.2);
+        }
+
+        .location-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #009be3;
+        }
+
+        .current-location {
+            color: #009be3;
+            cursor: pointer;
+            margin-top: 5px;
+            display: inline-block;
+        }
+
+        #map {
+            height: 400px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+
+        .cabs-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .cab-card {
+            background: #1a1a1a;
+            border-radius: 15px;
+            padding: 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .cab-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .driver-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .driver-photo {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            margin-right: 15px;
+            object-fit: cover;
+        }
+
+        .driver-details h3 {
+            margin: 0;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .rating {
+            color: #ffc107;
+            margin-top: 5px;
+        }
+
+        .car-info img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .trip-details {
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+        }
+
+        .book-btn {
+            width: 100%;
+            background: #009be3;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .book-btn:hover {
+            background: #007bb5;
+        }
+
+        .pac-container {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 0 0 8px 8px;
+        }
+
+        .pac-item {
+            padding: 10px;
+            color: white;
+            border-color: #333;
+        }
+
+        .pac-item:hover {
+            background: #2d2d2d;
+        }
+
+        .pac-item-query {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .cab-finder-container {
+                padding: 10px;
+            }
+
+            .search-section {
+                padding: 20px;
+            }
+
+            #map {
+                height: 300px;
+            }
+        }
+
+        .page-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 250px;
+            background: #1a1a1a;
+            padding: 20px;
+            border-right: 1px solid #333;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .nav-link:hover {
+            background: #2d2d2d;
+        }
+
+        .nav-link.active {
+            background: #009be3;
+        }
+
+        .nav-link i {
+            margin-right: 10px;
+        }
+
+        .search-section {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .active-trips-section {
+            display: none;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .trip-card {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .trip-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status-confirmed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-started {
+            background: #2196f3;
+            color: white;
+        }
+
+        .pay-button {
+            background: #009be3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .pay-button:hover {
+            background: #0088cc;
+        }
+
+        .payment-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 500px;
+            margin: 50px auto;
+        }
+
+        #payment-form {
+            padding: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .page-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #333;
+            }
+        }
+
+        .no-trips {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 1.2em;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #ff4444;
+            font-size: 1.2em;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        #activeTripsSection {
+            padding: 20px;
+        }
+
+        .trip-card {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .active-trips-section {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .trip-card {
+            background: #1a1a1a;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .trip-status {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            margin-top: 10px;
+        }
+        
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .status-confirmed {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-started {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .no-trips {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 1.2em;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #ff4444;
+            font-size: 1.2em;
+            background: #1a1a1a;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        .active-trips-section {
+            padding: 20px;
+            background: #1a1a1a;
+        }
+
+        .trip-card {
+            background: #2a2a2a;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .trip-status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9em;
+            margin-top: 15px;
+        }
+
+        .status-pending {
+            background: #ff9800;
+            color: white;
+        }
+
+        .status-confirmed {
+            background: #4caf50;
+            color: white;
+        }
+
+        .status-started {
+            background: #2196f3;
+            color: white;
+        }
+
+        .pay-button {
+            background: #009be3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .pay-button:hover {
+            background: #0088cc;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="#" class="nav-link active" data-section="search">
+                <i class="fas fa-home"></i> Home
+            </a>
+            <a href="#" class="nav-link" data-section="active-trips">
+                <i class="fas fa-route"></i> Active Trips
+            </a>
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: #dc3545;">
+                <i class="fas fa-sign-out-alt"></i>
+                Logout
+            </a>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Search Section -->
+            <div class="search-section" id="searchSection">
+                <h2 class="text-center mb-4">Find Available Cabs</h2>
+                <div class="location-inputs">
+                    <div class="input-group">
+                        <i class="fas fa-map-marker-alt location-icon"></i>
+                        <input type="text" id="pickupLocation" placeholder="Enter pickup location" autocomplete="off">
+                        <div class="current-location" onclick="useCurrentLocation()">
+                            <i class="fas fa-location-arrow"></i> Use current location
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <i class="fas fa-map-pin location-icon"></i>
+                        <input type="text" id="dropLocation" placeholder="Enter drop location" autocomplete="off">
+                    </div>
+                </div>
+            </div>
+
+            <div id="map"></div>
+
+            <div id="cabsSection" class="cabs-section">
+                <!-- Cabs will be loaded here -->
+            </div>
+
+            <!-- Active Trips Section -->
+            <div class="active-trips-section" id="activeTripsSection" style="display: none;">
+                <h2 class="text-center mb-4">Your Active Trips</h2>
+                <div id="activeTripsContainer">
+                    <!-- Active trips will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payment Modal -->
+    <div class="payment-modal" id="paymentModal">
+        <div class="modal-content">
+            <h3>Complete Payment</h3>
+            <form id="payment-form">
+                <div id="card-element"></div>
+                <div id="card-errors" role="alert"></div>
+                <button type="submit" class="pay-button mt-3">Pay Now</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://maps.gomaps.pro/maps/api/js?key=AlzaSyhfU1ihe_RVFLNGZVWx5zMkZ38LDiw1O-f&libraries=places"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        let map;
+        let directionsService;
+        let directionsRenderer;
+        let pickupAutocomplete;
+        let dropAutocomplete;
+        let currentMarker;
+        let pickupMarker;
+        let dropMarker;
+        let currentDriverData = null;
+        let currentDistance = 0;
+        let stripe;
+        let elements;
+
+        // Initialize Stripe outside DOMContentLoaded
+        try {
+            stripe = Stripe('your_publishable_key'); // Replace with your actual Stripe publishable key
+        } catch (e) {
+            console.error('Stripe initialization error:', e);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded');
+
+            initMap();
+            setupAutocomplete();
+            elements = stripe.elements();
+
+            const navLinks = document.querySelectorAll('.nav-link');
+            console.log('Found nav links:', navLinks.length);
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    console.log('Nav link clicked:', this.getAttribute('data-section'));
+                    
+                    if (this.getAttribute('href') === '#') {
+                        e.preventDefault();
+                        
+                        navLinks.forEach(l => l.classList.remove('active'));
+                        
+                        this.classList.add('active');
+                        
+                        const section = this.getAttribute('data-section');
+                        console.log('Switching to section:', section);
+
+                        const searchSection = document.getElementById('searchSection');
+                        const mapElement = document.getElementById('map');
+                        const cabsSection = document.getElementById('cabsSection');
+                        const activeTripsSection = document.getElementById('activeTripsSection');
+
+                        console.log('Found sections:', {
+                            searchSection: !!searchSection,
+                            mapElement: !!mapElement,
+                            cabsSection: !!cabsSection,
+                            activeTripsSection: !!activeTripsSection
+                        });
+
+                        if (searchSection) searchSection.style.display = 'none';
+                        if (mapElement) mapElement.style.display = 'none';
+                        if (cabsSection) cabsSection.style.display = 'none';
+                        if (activeTripsSection) activeTripsSection.style.display = 'none';
+
+                        if (section === 'search') {
+                            if (searchSection) searchSection.style.display = 'block';
+                            if (mapElement) mapElement.style.display = 'block';
+                            if (cabsSection) cabsSection.style.display = 'grid';
+                        } else if (section === 'active-trips') {
+                            console.log('Showing active trips section');
+                            if (activeTripsSection) {
+                                activeTripsSection.style.display = 'block';
+                                loadActiveTrips();
+                            }
+                        }
+                    }
+                });
+            });
+        });
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 20.5937, lng: 78.9629 },
+                zoom: 13,
+                styles: [
+                    // Add dark theme map styles here
+                ]
+            });
+
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map,
+                suppressMarkers: true
+            });
+        }
+
+        function setupAutocomplete() {
+            const pickupInput = document.getElementById('pickupLocation');
+            const dropInput = document.getElementById('dropLocation');
+
+            pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput);
+            dropAutocomplete = new google.maps.places.Autocomplete(dropInput);
+
+            pickupAutocomplete.addListener('place_changed', () => handlePlaceSelection('pickup'));
+            dropAutocomplete.addListener('place_changed', () => handlePlaceSelection('drop'));
+        }
+
+        function handlePlaceSelection(type) {
+            const place = type === 'pickup' ? pickupAutocomplete.getPlace() : dropAutocomplete.getPlace();
+            
+            if (!place.geometry) {
+                return;
+            }
+
+            const location = place.geometry.location;
+            
+            if (type === 'pickup') {
+                if (pickupMarker) pickupMarker.setMap(null);
+                pickupMarker = new google.maps.Marker({
+                    position: location,
+                    map: map,
+                    icon: 'http://maps.google.com/mapfiles/ms/icons/green-dot.png'
+                });
+            } else {
+                if (dropMarker) dropMarker.setMap(null);
+                dropMarker = new google.maps.Marker({
+                    position: location,
+                    map: map,
+                    icon: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                });
+            }
+
+            if (pickupMarker && dropMarker) {
+                calculateRoute();
+            }
+        }
+
+        function useCurrentLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const pos = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+
+                        if (currentMarker) currentMarker.setMap(null);
+                        currentMarker = new google.maps.Marker({
+                            position: pos,
+                            map: map,
+                            icon: 'http://maps.google.com/mapfiles/ms/icons/blue-dot.png'
+                        });
+
+                        map.setCenter(pos);
+                        reverseGeocode(pos);
+                        findNearbyCabs(pos);
+                    },
+                    () => {
+                        alert('Error: The Geolocation service failed.');
+                    }
+                );
+            } else {
+                alert('Error: Your browser doesn\'t support geolocation.');
+            }
+        }
+
+        function reverseGeocode(latLng) {
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: latLng }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    document.getElementById('pickupLocation').value = results[0].formatted_address;
+                    if (pickupMarker) pickupMarker.setMap(null);
+                    pickupMarker = currentMarker;
+                }
+            });
+        }
+
+        function calculateRoute() {
+            const request = {
+                origin: pickupMarker.getPosition(),
+                destination: dropMarker.getPosition(),
+                travelMode: 'DRIVING'
+            };
+
+            directionsService.route(request, (result, status) => {
+                if (status === 'OK') {
+                    directionsRenderer.setDirections(result);
+                    const distance = result.routes[0].legs[0].distance.value / 1000; // Convert to km
+                    
+                    if (distance >= 1) {
+                        findNearbyCabs(pickupMarker.getPosition(), distance);
+                    } else {
+                        alert('Distance must be at least 1 km');
+                    }
+                }
+            });
+        }
+
+        function findNearbyCabs(location, distance = null) {
+            const lat = location.lat();
+            const lng = location.lng();
+
+            fetch(`/get_nearby_drivers?lat=${lat}&lng=${lng}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayCabs(data.drivers, distance);
+                    } else {
+                        console.error('Error fetching nearby drivers:', data.message);
+                    }
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function displayCabs(drivers, distance = null) {
+            const container = document.getElementById('cabsSection');
+            container.innerHTML = '';
+
+            drivers.forEach(driver => {
+                currentDriverData = driver;
+                currentDistance = distance || driver.distance;
+
+                const card = document.createElement('div');
+                card.className = 'cab-card';
+                // Create a safe version of driver data for JSON
+                const safeDriverData = {
+                    id: driver.id,
+                    base_rate: driver.base_rate,
+                    extra_km_rate: driver.extra_km_rate
+                    // Add other necessary fields
+                };
+                
+                card.innerHTML = `
+                    <div class="driver-info">
+                        <img src="/static/images/${driver.photo || 'default.jpg'}" class="driver-photo" alt="Driver">
+                        <div class="driver-details">
+                            <h3>${driver.name}</h3>
+                            <div class="rating">
+                                ${getStarRating(driver.rating)} (${driver.rating})
+                            </div>
+                        </div>
+                    </div>
+                    <div class="car-info">
+                        <img src="/static/images/cars/${driver.car_photo || 'default.jpg'}" alt="Car">
+                        <div>${driver.car_company} ${driver.car_model}</div>
+                        <div>${driver.car_type}</div>
+                    </div>
+                    <div class="trip-details">
+                        <div>Distance: ${currentDistance.toFixed(1)} km</div>
+                        <div>Estimated Fare: ₹${calculateFare(driver, currentDistance)}</div>
+                    </div>
+                    <button class="book-btn" data-driver-id="${driver.id}">Book Now</button>
+                `;
+                container.appendChild(card);
+
+                // Add click event listener to the button
+                const bookButton = card.querySelector('.book-btn');
+                bookButton.addEventListener('click', function() {
+                    bookTrip(driver.id, safeDriverData);
+                });
+            });
+        }
+
+        function getStarRating(rating) {
+            return '★'.repeat(Math.floor(rating)) + '☆'.repeat(5 - Math.floor(rating));
+        }
+
+        function calculateFare(driver, distance) {
+            const baseRate = parseFloat(driver.base_rate);
+            const extraKmRate = parseFloat(driver.extra_km_rate);
+            
+            if (distance <= 1) {
+                return baseRate;
+            }
+            return Math.round(baseRate + (distance - 1) * extraKmRate);
+        }
+
+        function bookTrip(driverId, driverData) {
+            if (!pickupMarker || !dropMarker) {
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Please select both pickup and drop locations',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    background: '#1a1a1a',
+                    color: '#fff'
+                });
+                return;
+            }
+
+            const tripData = {
+                driver_id: driverId,
+                user_id: '{{ session["user"] }}',
+                from_location: document.getElementById('pickupLocation').value,
+                to_location: document.getElementById('dropLocation').value,
+                booking_time: new Date().toISOString(),
+                trip_amount: calculateFare(driverData, currentDistance),
+                booking_status: "0",
+                trip_status: "0"
+            };
+
+            fetch('/book_trip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(tripData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Find the button using data attribute
+                    const bookButton = document.querySelector(`.book-btn[data-driver-id="${driverId}"]`);
+                    
+                    if (bookButton) {
+                        bookButton.textContent = 'Trip Requested';
+                        bookButton.disabled = true;
+                        bookButton.classList.remove('book-btn');
+                        bookButton.classList.add('requested-btn');
+                    } else {
+                        console.error('Button not found for driver:', driverId);
+                    }
+
+                    Swal.fire({
+                        title: 'Booking Requested!',
+                        text: 'Please wait for driver confirmation',
+                        icon: 'success',
+                        confirmButtonText: 'OK',
+                        background: '#1a1a1a',
+                        color: '#fff'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to book trip',
+                        icon: 'error',
+                        confirmButtonText: 'OK',
+                        background: '#1a1a1a',
+                        color: '#fff'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to book trip',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    background: '#1a1a1a',
+                    color: '#fff'
+                });
+            });
+        }
+
+        // Add CSS for the buttons
+        const style = document.createElement('style');
+        style.textContent = `
+            .book-btn {
+                width: 100%;
+                background-color: #009be3;
+                color: white;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+            }
+
+            .book-btn:hover {
+                background-color: #007bb5;
+            }
+
+            .requested-btn {
+                width: 100%;
+                background-color: #666;
+                color: white;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                cursor: not-allowed;
+            }
+        `;
+        document.head.appendChild(style);
+
+        document.getElementById('carDetailsForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const photo1 = document.getElementById('car_photo_1').files[0];
+            const photo2 = document.getElementById('car_photo_2').files[0];
+            const photo3 = document.getElementById('car_photo_3').files[0];
+
+            if (!photo1 || !photo2 || !photo3) {
+                alert('Please select three images');
+                return;
+            }
+
+            const formData = new FormData(this);
+
+            fetch('/submit_car_details', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.reload();
+                } else {
+                    alert(data.message || 'Error submitting form');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error submitting form');
+            });
+        });
+
+        function getLocationCoords(location) {
+            if (typeof location.lat === 'function') {
+                return {
+                    lat: location.lat(),
+                    lng: location.lng()
+                };
+            }
+            return {
+                lat: location.lat,
+                lng: location.lng
+            };
+        }
+
+        function loadActiveTrips() {
+            console.log('Loading active trips');
+            const container = document.getElementById('activeTripsContainer');
+            
+            if (!container) {
+                console.error('Active trips container not found');
+                return;
+            }
+
+            container.innerHTML = '<div class="loading">Loading trips...</div>';
+
+            fetch('/get_user_trips')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Received trips data:', data);
+                    if (data.success && data.trips) {
+                        displayActiveTrips(data.trips);
+                    } else {
+                        container.innerHTML = `<div class="no-trips">
+                            ${data.message || 'No active trips found'}
+                        </div>`;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading trips:', error);
+                    container.innerHTML = `<div class="error-message">
+                        Error loading trips: ${error.message}
+                    </div>`;
+                });
+        }
+
+        function displayActiveTrips(trips) {
+            console.log('Displaying trips:', trips);
+            const container = document.getElementById('activeTripsContainer');
+            
+            if (!container) {
+                console.error('Active trips container not found');
+                return;
+            }
+
+            container.innerHTML = '';
+
+            if (!trips || trips.length === 0) {
+                container.innerHTML = `
+                    <div class="no-trips">
+                        <i class="fas fa-route fa-3x mb-3"></i>
+                        <p>No active trips found</p>
+                    </div>`;
+                return;
+            }
+
+            trips.forEach(trip => {
+                const card = document.createElement('div');
+                card.className = 'trip-card';
+                card.innerHTML = `
+                    <div class="passenger-info">
+                        <img src="/static/images/${trip.user_image}" 
+                             alt="Passenger" 
+                             class="passenger-photo"
+                             onerror="this.src='/static/images/default.jpg'">
+                        <div class="passenger-details">
+                            <h4>${trip.user_name}</h4>
+                            <small>Booked: ${formatDateTime(trip.booking_time)}</small>
+                            ${getTripStatus(trip)}
+                        </div>
+                    </div>
+                    <div class="location-info">
+                        <p><i class="fas fa-map-marker-alt"></i> From: ${trip.from_location}</p>
+                        <p><i class="fas fa-map-pin"></i> To: ${trip.to_location}</p>
+                        <p><i class="fas fa-indian-rupee-sign"></i> Fare: ₹${trip.trip_amount}</p>
+                    </div>
+                    ${getTripActions(trip)}
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function getTripStatus(trip) {
+            let status = '';
+            let color = '';
+            
+            if (trip.trip_status === 2) {
+                status = 'Completed';
+                color = '#4CAF50';
+            } else if (trip.trip_status === 1) {
+                status = 'In Progress';
+                color = '#2196F3';
+            } else if (trip.booking_status === 1) {
+                status = 'Accepted';
+                color = '#FF9800';
+            } else {
+                status = 'New Request';
+                color = '#9C27B0';
+            }
+            
+            return `<span class="status-badge" style="background-color: ${color}">${status}</span>`;
+        }
+
+        function getTripActions(trip) {
+            if (trip.booking_status === 0) {
+                return `
+                    <div class="trip-actions">
+                        <button class="trip-button accept-button" 
+                                onclick="updateTripStatus('${trip.booking_id}', 'booking', 1)">
+                            Accept Request
+                        </button>
+                    </div>`;
+            } else if (trip.booking_status === 1 && trip.trip_status === 0) {
+                return `
+                    <div class="trip-actions">
+                        <button class="trip-button start-button" 
+                                onclick="updateTripStatus('${trip.booking_id}', 'trip', 1)">
+                            Start Trip
+                        </button>
+                    </div>`;
+            }
+            return '';
+        }
+
+        function formatDateTime(dateString) {
+            if (!dateString) return 'Unknown';
+            return new Date(dateString).toLocaleString();
+        }
+
+        function initiatePayment(bookingId, amount) {
+            if (!stripe) {
+                console.error('Stripe not initialized');
+                return;
+            }
+
+            const paymentModal = document.getElementById('paymentModal');
+            paymentModal.style.display = 'block';
+
+            const card = elements.create('card');
+            card.mount('#card-element');
+
+            const form = document.getElementById('payment-form');
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                stripe.createToken(card).then(function(result) {
+                    if (result.error) {
+                        const errorElement = document.getElementById('card-errors');
+                        errorElement.textContent = result.error.message;
+                    } else {
+                        completePayment(bookingId, result.token.id);
+                    }
+                });
+            });
+        }
+
+        function completePayment(bookingId, token) {
+            fetch('/complete_payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    booking_id: bookingId,
+                    token: token
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('paymentModal').style.display = 'none';
+                    Swal.fire({
+                        title: 'Success!',
+                        text: 'Payment completed successfully',
+                        icon: 'success',
+                        background: '#1a1a1a',
+                        color: '#fff'
+                    }).then(() => {
+                        loadActiveTrips();
+                    });
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('paymentModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html>
